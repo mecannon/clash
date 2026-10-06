@@ -14,7 +14,7 @@ Free Render services sleep after about 15 idle minutes. The first visit afterwar
 - `typeclash.html`: the whole game (built output). The server serves it at `/`.
 - `server.js`, `package.json`: matchmaking queue + WebSocket relay. `/health` shows queue and room counts.
 - `render.yaml`: Render blueprint.
-- `src/`: game sources. Rebuild with `cd src && python3 build.py`, then copy `src/dist/typeclash.html` to the repo root.
+- `src/`: game sources. Rebuild with `cd src && python3 build.py`, then copy `src/dist/page.html` to the repo root as `typeclash.html` (page.html is the standalone build with the html/head wrapper).
 
 ## Run locally
 ```
