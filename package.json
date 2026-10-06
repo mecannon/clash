@@ -1,0 +1,9 @@
+{
+  "name": "typeclash-server",
+  "version": "1.0.0",
+  "description": "Matchmaking and relay server for Typeclash online quick match",
+  "main": "server.js",
+  "scripts": { "start": "node server.js" },
+  "engines": { "node": ">=18" },
+  "dependencies": { "ws": "^8.18.0" }
+}
