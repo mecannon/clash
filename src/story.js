@@ -104,10 +104,13 @@ function buildLab(){const m=interiorBase('lab','LARCH FIELD OFFICE',20,14,1);
   npc(m,{id:'rival',look:'rival',x:6,y:9,dir:'up',hidden:true,talk:rivalTalk});
   npc(m,{id:'aide',look:'aide',x:16,y:11,dir:'left',wander:1,talk:async()=>{await say("I feed the Terrarium residents. The water one hogs the pond, the fire one naps on the coals, and the grass one sunbathes all day.")}});
   return m}
+function lvOf(m){return(X,Y)=>{if(X<0||Y<0||X>=m.w||Y>=m.h)return 0;const e=m.elev?m.elev[Y][X]||0:0;return m.ground[Y][X]===10?Math.max(1,e):e}}
 function prepMap(m){m.cvs=[renderMap(m,0),renderMap(m,1)]}
 function renderMap(m,fr){const cv0=mkCanvas(m.w*16,m.h*16),c=cpuCtx(cv0);
   for(let Y=0;Y<m.h;Y++)for(let X=0;X<m.w;X++){const x0=X*16,y0=Y*16,v=m.ground[Y][X];
-    if(m.interior)drawFloor(c,x0,y0,m.lab,X,Y);else if(v===6)tileCobble(x0,y0,X,Y,c);else if(v===7)tileBridge(x0,y0,X,Y,c,m.ground);else if(v===8)tileDirt(x0,y0,X,Y,c,m.ground);else if(v===1)tilePath(x0,y0,X,Y,c,m.ground);else if(v===2)tileWater(x0,y0,X,Y,c,m.ground,fr);else if(v===3)tileTall(x0,y0,X,Y,c);else if(v===4)tileFlowers(x0,y0,X,Y,c);else if(v===9)tileSand(x0,y0,X,Y,c,m.ground);else if(v===10)(m.dungeon?tileDungeonWall:tileCliff)(x0,y0,X,Y,c,m.ground);else if(v===11)tileStairs(x0,y0,X,Y,c,m.ground);else tileGrass(x0,y0,X,Y,c)}
+    if(m.interior)drawFloor(c,x0,y0,m.lab,X,Y);else if(v===6)tileCobble(x0,y0,X,Y,c);else if(v===7)tileBridge(x0,y0,X,Y,c,m.ground);else if(v===8)tileDirt(x0,y0,X,Y,c,m.ground);else if(v===1)tilePath(x0,y0,X,Y,c,m.ground);else if(v===2)tileWater(x0,y0,X,Y,c,m.ground,fr);else if(v===3)tileTall(x0,y0,X,Y,c);else if(v===4)tileFlowers(x0,y0,X,Y,c);else if(v===9)tileSand(x0,y0,X,Y,c,m.ground);else if(v===10){if(m.dungeon)tileDungeonWall(x0,y0,X,Y,c,m.ground);else tileCliff(x0,y0,X,Y,c,m.ground,lvOf(m))}else if(v===11)tileStairs(x0,y0,X,Y,c,m.ground);else tileGrass(x0,y0,X,Y,c)}
+  if(!m.interior&&!m.dungeon){const lv=lvOf(m);for(let Y=1;Y<m.h;Y++)for(let X=0;X<m.w;X++){const d=lv(X,Y-1)-lv(X,Y);if(d>0&&m.ground[Y][X]!==10&&m.ground[Y][X]!==11){for(let k=0;k<5;k++){c.fillStyle='rgba(20,30,24,'+(.26*(1-k/5)*Math.min(2,d))+')';c.fillRect(X*16,Y*16+k,16,1)}}
+    const e=lv(X-1,Y)-lv(X,Y);if(e>0&&m.ground[Y][X]!==10&&m.ground[Y][X]!==11){for(let k=0;k<3;k++){c.fillStyle='rgba(20,30,24,'+(.16*(1-k/3))+')';c.fillRect(X*16+k,Y*16,1,16)}}}}
   if(!TREE_CV){TREE_CV=treeSprite();ROCK_CV=rockSprite()}
   const list=[...m.deco];for(let Y=0;Y<m.h;Y++)for(let X=0;X<m.w;X++){if(m.obj[Y][X]===1){list.push({y:Y*16+26,flat:true,fn:c=>drawTreeShadow(c,X,Y)});list.push({y:Y*16+31,fn:c=>c.drawImage(treeCv(X,Y),X*16,Y*16)})}if(m.obj[Y][X]===2){list.push({y:Y*16+12,flat:true,fn:c=>drawRockShadow(c,X,Y)});list.push({y:Y*16+15,fn:c=>c.drawImage(ROCK_CV,X*16,Y*16)})}}
   list.sort((a,b)=>a.y-b.y).forEach(d=>d.fn(c));const cv=mkCanvas(m.w*16,m.h*16);cv.getContext('2d').drawImage(cv0,0,0);return cv}
@@ -240,7 +243,7 @@ function trainerBattle(o){return new Promise(async res=>{const m=OW.map,p=OW.p;
   let x0,y0,w,h;if(m.interior){x0=0;y0=0;w=m.w;h=m.h}else{w=Math.min(m.w,40);h=Math.min(m.h,24);x0=clamp(Math.round((p.x+o.npc.x)/2-w/2),0,m.w-w);y0=clamp(Math.round((p.y+o.npc.y)/2-h/2),0,m.h-h)}
   const sub=k=>m[k].slice(y0,y0+h).map(r=>r.slice(x0,x0+w));
   MW=w;MH=h;WW=w*16;WH=h*16;MINI=null;
-  MAP={ground:sub('ground'),obj:sub('obj'),walk:sub('walk'),shot:sub('shot')};
+  MAP={ground:sub('ground'),obj:sub('obj'),walk:sub('walk'),shot:sub('shot')};softTrees(MAP);
   WORLD=m.cvs.map(cv=>{const c=mkCanvas(WW,WH),x=c.getContext('2d');x.drawImage(cv,-x0*16,-y0*16);if(m.habitats)for(const hb of m.habitats)drawHabitatLive(x,hb,(hb.x-x0)*16,(hb.y-y0)*16,0);return c});
   sel.diff=o.diff;newGame(OW.party.map(c=>({id:c.id,lv:c.lv,hp:c.hp,ht:c.ht})),o.enemy.slice(),o.diff);
   const P=G.f[0],Q=G.f[1];P.x=p.px-x0*16;P.y=p.py-y0*16-2;Q.x=(o.npc.x-x0)*16+8;Q.y=(o.npc.y-y0)*16+12;P.aim=Math.atan2(Q.y-P.y,Q.x-P.x);Q.aim=P.aim+PI;
@@ -771,91 +774,114 @@ async function lighthouseWon(){await say("The violet glow fades from the sky. Fo
 
 /* ---------- Route 3: Talonreach Wilds (giant tiered wilderness west of Millhaven) ---------- */
 function buildRoute3(){const W=128,H=128,m=mkMapData('route3',W,H,{name:'TALONREACH WILDS'});m.route=1;m.rnpcs=[];m.items=[];m.pits=[];m.wildCap=10;
-  const E=m.elev=Array.from({length:H},()=>new Array(W).fill(0)),inb=(x,y)=>x>=0&&y>=0&&x<W&&y<H;
-  const EX={e:[W-1,64],n:[64,0],w:[0,64]};
-  // 1) tiers from layered noise
-  for(let y=0;y<H;y++)for(let x=0;x<W;x++){const h=vnz(x*16,y*16,701,24*16)*.5+vnz(x*16,y*16,702,10*16)*.25+vnz(x*16,y*16,703,48*16)*.45;
-    E[y][x]=h<.5?0:h<.66?1:h<.8?2:3}
-  // 2) wide fields: flatten big ovals to one tier
-  for(const[cx,cy,rx,ry,L]of[[96,64,16,11,0],[40,40,15,10,1],[34,96,13,10,0],[86,24,11,8,2],[88,104,12,8,1],[60,66,8,6,2]])
-    for(let y=0;y<H;y++)for(let x=0;x<W;x++){if(((x+.5-cx)/rx)**2+((y+.5-cy)/ry)**2<1-hsh(x,y,704)*.15)E[y][x]=L}
-  // 3) canyons: tight winding corridors cut down to the valley floor
+  const inb=(x,y)=>x>=0&&y>=0&&x<W&&y<H,N4=[[1,0],[-1,0],[0,1],[0,-1]],N8=[...N4,[1,1],[-1,1],[1,-1],[-1,-1]];
+  const GATE={e:[W-1,64],n:[64,0],w:[0,64]},ENT=[W-3,64];
+  // ---- 1) terrain tiers: layered noise, a few broad fields, carved canyons, valley-floor borders ----
+  const E=Array.from({length:H},()=>new Array(W).fill(0));
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++){const h=vnz(x*16,y*16,701,24*16)*.5+vnz(x*16,y*16,702,10*16)*.25+vnz(x*16,y*16,703,48*16)*.45;E[y][x]=h<.44?0:h<.6?1:h<.74?2:3}
+  for(const[cx,cy,rx,ry,L]of[[96,64,16,11,0],[40,40,15,10,1],[34,96,13,10,0],[86,24,11,8,2],[88,104,12,8,1],[60,66,8,6,2],[20,20,9,7,3]])
+    for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(((x+.5-cx)/rx)**2+((y+.5-cy)/ry)**2<1-hsh(x,y,704)*.15)E[y][x]=L;
   const canyons=[[[127,64],[110,60],[96,64],[78,58],[64,66],[50,62],[30,64],[0,64]],[[64,0],[66,14],[58,28],[64,44],[64,66]],[[78,58],[84,80],[96,92],[88,104]],
-    [[50,62],[44,80],[34,96]],[[30,64],[22,48],[32,30],[40,40]],[[96,64],[104,40],[86,24]],[[64,44],[48,30],[40,40]],[[34,96],[50,112],[70,118],[88,104]],[[114,64],[112,82],[116,98],[104,114],[90,120]],[[116,98],[122,84]]];
-  for(const pl of canyons)for(let y=0;y<H;y++)for(let x=0;x<W;x++)for(let k=0;k<pl.length-1;k++){const d=segD(x+.5,y+.5,...pl[k],...pl[k+1]),w=1.6+hsh(x>>2,y>>2,705)*1.6;if(d<w){E[y][x]=0;break}}
-  // borders + exit throats stay on the valley floor
-  for(let y=0;y<H;y++)for(let x=0;x<W;x++){if(x<4||y<4||x>W-5||y>H-5)E[y][x]=0;for(const[ex,ey]of Object.values(EX))if(Math.abs(x-ex)+Math.abs(y-ey)<10)E[y][x]=0}
-  // 4) tidy: erase tiny islands/pits so every tier reads as a real shelf
-  for(let pass=0;pass<3;pass++){const seen=new Uint8Array(W*H);
-    for(let y=0;y<H;y++)for(let x=0;x<W;x++){if(seen[y*W+x])continue;const L=E[y][x],q=[[x,y]],reg=[];seen[y*W+x]=1;
-      while(q.length){const[a,b]=q.pop();reg.push([a,b]);for(const[dx,dy]of[[1,0],[-1,0],[0,1],[0,-1]]){const X=a+dx,Y=b+dy;if(inb(X,Y)&&!seen[Y*W+X]&&E[Y][X]===L){seen[Y*W+X]=1;q.push([X,Y])}}}
-      if(reg.length<26){let lo=L;for(const[a,b]of reg)for(const[dx,dy]of[[1,0],[-1,0],[0,1],[0,-1]]){const X=a+dx,Y=b+dy;if(inb(X,Y)&&E[Y][X]!==L){lo=E[Y][X];break}}for(const[a,b]of reg)E[b][a]=lo}}}
-  for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(E[y][x]>0&&(y<2||E[y-1][x]<E[y][x])&&(y>H-3||E[y+1][x]<E[y][x]))E[y][x]=Math.max(0,E[y][x]-1);
-  // terraces step one tier at a time so every shelf can take a staircase
-  for(let ch=1,it=0;ch&&it<20;it++){ch=0;for(let y=0;y<H;y++)for(let x=0;x<W;x++){let mn=9;for(const[dx,dy]of[[1,0],[-1,0],[0,1],[0,-1]]){const X=x+dx,Y=y+dy;if(inb(X,Y))mn=Math.min(mn,E[Y][X])}if(E[y][x]>mn+1){E[y][x]=mn+1;ch=1}}}
-  // 5) lakes in the low basins
-  for(const[cx,cy,rx,ry]of[[100,70,6,4],[30,100,5,3.5],[70,120,7,3],[16,24,5,4]])for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(E[y][x]===0&&((x+.5-cx)/rx)**2+((y+.5-cy)/ry)**2<1-hsh(x,y,706)*.25){m.ground[y][x]=2;m.walk[y][x]=1}
-  // 6) cliff rims: a tile that drops to a lower neighbour becomes an impassable rock edge
-  for(let y=0;y<H;y++)for(let x=0;x<W;x++){const L=E[y][x];if(!L)continue;let rim=false;for(const[dx,dy]of[[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,1],[1,-1],[-1,-1]]){const X=x+dx,Y=y+dy;if(inb(X,Y)&&E[Y][X]<L)rim=true}
-    if(rim){m.ground[y][x]=10;m.walk[y][x]=1;m.shot[y][x]=1}}
-  // 7) ground dressing per tier: tall grass, flowers, rocky dirt up high
-  for(let y=0;y<H;y++)for(let x=0;x<W;x++){if(m.ground[y][x]!==0)continue;const L=E[y][x],n=vnz(x*16,y*16,707,7*16),f=vnz(x*16,y*16,708,4*16);
-    if(L===3&&n>.45)m.ground[y][x]=8;else if(n>.62)m.ground[y][x]=3;else if(f>.82)m.ground[y][x]=4;else if(L>=2&&n<.18)m.ground[y][x]=8}
-  // border forest + exits
-  const openAt=(x,y)=>Object.values(EX).some(([ex,ey])=>Math.abs(x-ex)<=2&&Math.abs(y-ey)<=2||(ex===0||ex===W-1)&&Math.abs(y-ey)<=2&&(x<4||x>W-5)||ey===0&&Math.abs(x-ex)<=2&&y<4);
-  for(let x=0;x<W;x+=2)for(const y of[0,2,H-2,H-4])if(!openAt(x,y)&&!openAt(x+1,y))otree(m,x,y);
-  for(let y=4;y<H-4;y+=2)for(const x of[0,2,W-2,W-4])if(!openAt(x,y)&&!openAt(x,y+1))otree(m,x,y);
-  // 8) trees in open fields (never near rims, water or the canyon floors' narrow bits)
-  const clear=(x,y,r)=>{for(let j=-r;j<=r;j++)for(let i=-r;i<=r;i++){const g=m.ground[y+j]?.[x+i];if(g===undefined||g===10||g===2||g===11)return false}return true};
-  for(let y=6;y<H-6;y+=2)for(let x=6;x<W-6;x+=2){const t=vnz(x*16,y*16,709,9*16);if(t>.58&&hsh(x,y,710)<.7&&clear(x,y,2)&&free2x2(m,x,y)&&E[y][x]===E[y+1][x+1])otree(m,x,y)}
-  for(let k=0;k<160;k++){const x=6+Math.floor(hsh(k,1,711)*(W-12)),y=6+Math.floor(hsh(k,2,711)*(H-12));if(!m.walk[y][x]&&[0,8].includes(m.ground[y][x])&&clear(x,y,1))orock(m,x,y)}
-  // 9) staircases: link every walkable shelf to the entrance region (ramps climb northward)
-  const comp=()=>{const C=new Int32Array(W*H).fill(-1);let n=0;for(let y=0;y<H;y++)for(let x=0;x<W;x++){if(m.walk[y][x]||C[y*W+x]>=0)continue;const q=[[x,y]];C[y*W+x]=n;
-      while(q.length){const[a,b]=q.pop();for(const[dx,dy]of[[1,0],[-1,0],[0,1],[0,-1]]){const X=a+dx,Y=b+dy;if(inb(X,Y)&&!m.walk[Y][X]&&C[Y*W+X]<0){C[Y*W+X]=n;q.push([X,Y])}}}n++}return C};
-  const okStair=(x,y)=>{if(!inb(x,y-2)||!inb(x,y+1))return false;const L=E[y][x];return m.ground[y][x]===10&&L>0&&!m.walk[y+1][x]&&E[y+1][x]===L-1&&E[y-1][x]===L&&(m.walk[y-1][x]===0||m.ground[y-1][x]===10)&&!m.walk[y-2][x]&&E[y-2][x]===L&&!m.obj[y-1][x]};
-  const okStairN=(x,y)=>{if(!inb(x,y-1)||!inb(x,y+2))return false;const L=E[y][x];return m.ground[y][x]===10&&L>0&&!m.walk[y-1][x]&&E[y-1][x]===L-1&&E[y+1][x]===L&&(m.walk[y+1][x]===0||m.ground[y+1][x]===10)&&!m.walk[y+2][x]&&E[y+2][x]===L&&!m.obj[y+1][x]};
-  for(let iter=0;iter<120;iter++){const C=comp(),main=C[64*W+(W-3)];const size={};for(let i=0;i<C.length;i++)if(C[i]>=0)size[C[i]]=(size[C[i]]||0)+1;
-    let best=null;
-    for(let y=6;y<H-6;y++)for(let x=6;x<W-6;x++){if(!okStair(x-1,y)||!okStair(x,y)||!okStair(x+1,y))continue;const a=C[(y+1)*W+x],b=C[(y-2)*W+x];if(a<0||b<0||a===b)continue;
-      if(a!==main&&b!==main)continue;const other=a===main?b:a;const sc=size[other]+hsh(x,y,712)*30;if(!best||sc>best.sc)best={x,y,sc}}
-    for(let y=6;y<H-6;y++)for(let x=6;x<W-6;x++){if(!okStairN(x-1,y)||!okStairN(x,y)||!okStairN(x+1,y))continue;const a=C[(y-1)*W+x],b=C[(y+2)*W+x];if(a<0||b<0||a===b)continue;
-      if(a!==main&&b!==main)continue;const other=a===main?b:a;const sc=size[other]+hsh(x,y,715)*30;if(!best||sc>best.sc)best={x,y,sc,n:1}}
-    if(!best)break;const{x,y}=best;
-    for(let i=-1;i<=1;i++)for(const yy of(best.n?[y,y+1]:[y,y-1])){m.ground[yy][x+i]=11;m.walk[yy][x+i]=0;m.shot[yy][x+i]=0;m.obj[yy][x+i]=0}
-    for(let i=-2;i<=2;i++)if(m.ground[y+1]?.[x+i]===3)m.ground[y+1][x+i]=1}
-  // a few extra stairs so the big shelves have more than one way up
-  {const C=comp();let added=0;for(let y=8;y<H-8&&added<14;y+=3)for(let x=8;x<W-8&&added<14;x+=5){if(!okStair(x-1,y)||!okStair(x,y)||!okStair(x+1,y))continue;if(hsh(x,y,713)<.55)continue;
-    if(C[(y+1)*W+x]<0||C[(y-2)*W+x]<0)continue;for(let i=-1;i<=1;i++)for(const yy of[y,y-1]){m.ground[yy][x+i]=11;m.walk[yy][x+i]=0;m.shot[yy][x+i]=0}added++}}
-  // 10) trail: shortest walkable path from the east gate to the north and west gates
-  const C=comp(),main=C[64*W+(W-3)];
+    [[50,62],[44,80],[34,96]],[[30,64],[22,48],[32,30],[40,40]],[[96,64],[104,40],[86,24]],[[64,44],[48,30],[40,40]],[[34,96],[50,112],[70,118],[88,104]],[[114,64],[112,82],[116,98],[104,114],[90,120]]];
+  for(const pl of canyons)for(let y=0;y<H;y++)for(let x=0;x<W;x++)for(let k=0;k<pl.length-1;k++){if(segD(x+.5,y+.5,...pl[k],...pl[k+1])<1.7+hsh(x>>2,y>>2,705)*1.5){E[y][x]=0;break}}
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++){if(x<5||y<5||x>W-6||y>H-6)E[y][x]=0;for(const[gx,gy]of Object.values(GATE))if(Math.abs(x-gx)+Math.abs(y-gy)<11)E[y][x]=0}
+  const tidy=()=>{// one tier per step, no slivers: shelves under 70 tiles melt into their surroundings
+    for(let ch=1,it=0;ch&&it<20;it++){ch=0;for(let y=0;y<H;y++)for(let x=0;x<W;x++){let mn=9;for(const[dx,dy]of N4){const X=x+dx,Y=y+dy;if(inb(X,Y))mn=Math.min(mn,E[Y][X])}if(E[y][x]>mn+1){E[y][x]=mn+1;ch=1}}}
+    for(let pass=0;pass<3;pass++){const seen=new Uint8Array(W*H);for(let y=0;y<H;y++)for(let x=0;x<W;x++){if(seen[y*W+x])continue;const L=E[y][x],q=[[x,y]],reg=[];seen[y*W+x]=1;
+      while(q.length){const[a,b]=q.pop();reg.push([a,b]);for(const[dx,dy]of N4){const X=a+dx,Y=b+dy;if(inb(X,Y)&&!seen[Y*W+X]&&E[Y][X]===L){seen[Y*W+X]=1;q.push([X,Y])}}}
+      if(reg.length<70){let lo=null;for(const[a,b]of reg){for(const[dx,dy]of N4){const X=a+dx,Y=b+dy;if(inb(X,Y)&&E[Y][X]!==L){lo=E[Y][X];break}}if(lo!=null)break}if(lo!=null)for(const[a,b]of reg)E[b][a]=lo}}}
+    // shelves thinner than 3 tiles can't hold a walkable top inside their rims
+    for(let y=1;y<H-1;y++)for(let x=1;x<W-1;x++){const L=E[y][x];if(!L)continue;const v=(E[y-1][x]>=L)+(E[y+1][x]>=L),hz=(E[y][x-1]>=L)+(E[y][x+1]>=L);if(v<2&&hz<2)E[y][x]=L-1}};
+  tidy();
+  const LAKES=[[100,70,6,4],[30,100,5,3.5],[70,120,7,3],[16,24,5,4]];
+  // ---- 2) build the playable layer from the tiers; repeat until every shelf is reachable ----
+  let C,main;
+  const comp=()=>{const R=new Int32Array(W*H).fill(-1);let n=0;for(let y=0;y<H;y++)for(let x=0;x<W;x++){if(m.walk[y][x]||R[y*W+x]>=0)continue;const q=[[x,y]];R[y*W+x]=n;
+      while(q.length){const[a,b]=q.pop();for(const[dx,dy]of N4){const X=a+dx,Y=b+dy;if(inb(X,Y)&&!m.walk[Y][X]&&R[Y*W+X]<0){R[Y*W+X]=n;q.push([X,Y])}}}n++}return R};
+  const stair=(x,y,north)=>{for(let i=-1;i<=1;i++)for(const yy of(north?[y,y+1]:[y,y-1])){m.ground[yy][x+i]=11;m.walk[yy][x+i]=0;m.shot[yy][x+i]=0;m.obj[yy][x+i]=0}};
+  // a stair column: rim tile with a walkable tile one tier lower on one side and two walkable tiles on its own tier on the other
+  const okS=(x,y)=>{if(!inb(x,y-2)||!inb(x,y+1))return false;const L=E[y][x];return m.ground[y][x]===10&&L>0&&!m.walk[y+1][x]&&E[y+1][x]===L-1&&E[y-1][x]===L&&!m.obj[y-1][x]&&!m.walk[y-2][x]&&E[y-2][x]===L};
+  const okN=(x,y)=>{if(!inb(x,y-1)||!inb(x,y+2))return false;const L=E[y][x];return m.ground[y][x]===10&&L>0&&!m.walk[y-1][x]&&E[y-1][x]===L-1&&E[y+1][x]===L&&!m.obj[y+1][x]&&!m.walk[y+2][x]&&E[y+2][x]===L};
+  const stairSites=()=>{const out=[];for(let y=6;y<H-6;y++)for(let x=6;x<W-6;x++){if(okS(x-1,y)&&okS(x,y)&&okS(x+1,y))out.push({x,y,n:0,a:[x,y+1],b:[x,y-2]});if(okN(x-1,y)&&okN(x,y)&&okN(x+1,y))out.push({x,y,n:1,a:[x,y-1],b:[x,y+2]})}return out};
+  for(let pass=0;pass<8;pass++){
+    for(let y=0;y<H;y++)for(let x=0;x<W;x++){m.ground[y][x]=0;m.walk[y][x]=0;m.shot[y][x]=0;m.obj[y][x]=0}
+    for(const[cx,cy,rx,ry]of LAKES)for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(E[y][x]===0&&((x+.5-cx)/rx)**2+((y+.5-cy)/ry)**2<1-hsh(x,y,706)*.25){m.ground[y][x]=2;m.walk[y][x]=1}
+    for(let y=0;y<H;y++)for(let x=0;x<W;x++){const L=E[y][x];if(!L)continue;if(N8.some(([dx,dy])=>inb(x+dx,y+dy)&&E[y+dy][x+dx]<L)){m.ground[y][x]=10;m.walk[y][x]=1;m.shot[y][x]=1}}
+    // border forest with open gates
+    const gate=(x,y)=>Math.abs(y-64)<=2&&(x<5||x>W-6)||Math.abs(x-64)<=2&&y<5;
+    for(let x=0;x<W;x+=2)for(const y of[0,2,H-2,H-4])if(!gate(x,y)&&!gate(x+1,y)&&!gate(x,y+1))otree(m,x,y);
+    for(let y=4;y<H-4;y+=2)for(const x of[0,2,W-2,W-4])if(!gate(x,y)&&!gate(x,y+1)&&!gate(x+1,y))otree(m,x,y);
+    // groves: clustered, only on open ground well away from rims and water
+    const open=(x,y,r)=>{for(let j=-r;j<=r;j++)for(let i=-r;i<=r;i++){const g=m.ground[y+j]?.[x+i];if(g===undefined||g===10||g===2)return false}return true};
+    for(let y=6;y<H-6;y+=2)for(let x=6;x<W-6;x+=2){if(vnz(x*16,y*16,709,9*16)>.6&&hsh(x,y,710)<.75&&open(x,y,2)&&free2x2(m,x,y)&&E[y][x]===E[y+1][x+1])otree(m,x,y)}
+    // boulders: a few, scattered along cliff feet where they read as rockfall
+    for(let k=0;k<70;k++){const x=6+Math.floor(hsh(k,1,711)*(W-12)),y=6+Math.floor(hsh(k,2,711)*(H-12));if(m.walk[y][x]||m.ground[y][x]!==0)continue;
+      if(N4.some(([dx,dy])=>m.ground[y+dy]?.[x+dx]===10)&&open(x,y,0)&&!N8.some(([dx,dy])=>m.obj[y+dy]?.[x+dx]===2))orock(m,x,y)}
+    // link every shelf to the entrance region, biggest first
+    for(let it=0;it<140;it++){C=comp();main=C[ENT[1]*W+ENT[0]];const size={};for(let i=0;i<C.length;i++)if(C[i]>=0)size[C[i]]=(size[C[i]]||0)+1;
+      let best=null;for(const s of stairSites()){const a=C[s.a[1]*W+s.a[0]],b=C[s.b[1]*W+s.b[0]];if(a<0||b<0||a===b||(a!==main&&b!==main))continue;const sc=size[a===main?b:a]+hsh(s.x,s.y,712)*20;if(!best||sc>best.sc)best=Object.assign(s,{sc})}
+      if(!best)break;stair(best.x,best.y,best.n)}
+    C=comp();main=C[ENT[1]*W+ENT[0]];
+    // shelves still cut off: drop them one tier so they merge with a neighbour, then rebuild
+    // big shelves with no natural stair spot: reshape a short straight stretch of their edge so a staircase fits
+    if(pass===7)break;const sz={};for(let i=0;i<C.length;i++)if(C[i]>=0)sz[C[i]]=(sz[C[i]]||0)+1;const done=new Set();let fixed=0;
+    for(let y=8;y<H-8;y++)for(let x=8;x<W-8;x++){const c=C[y*W+x];if(c<0||c===main||sz[c]<40||done.has(c))continue;const L=E[y][x];if(!L)continue;
+      for(const dir of[1,-1]){const ry=y+dir,ly=y+2*dir;if(m.ground[ry]?.[x]!==10||E[ry][x]!==L||C[ly*W+x]!==main||E[ly][x]!==L-1)continue;
+        for(let i=-2;i<=2;i++){E[y][x+i]=L;E[y-dir][x+i]=L;E[ly][x+i]=L-1;E[ly+dir][x+i]=Math.min(E[ly+dir][x+i],L-1)+0}for(let i=-1;i<=1;i++)E[ry][x+i]=L;
+        done.add(c);fixed++;break}}
+    if(!fixed)break}
+  // big shelves get a second way up, placed far from the first, so climbing makes loops instead of dead ends
+  {const used=[];for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(m.ground[y][x]===11)used.push([x,y]);let added=0;
+    for(const s of stairSites()){if(added>=10)break;const L=E[s.y][s.x];if(L<1)continue;if(used.some(([ux,uy])=>Math.hypot(ux-s.x,uy-s.y)<26))continue;if(hsh(s.x,s.y,713)<.35)continue;
+      const a=C[s.a[1]*W+s.a[0]],b=C[s.b[1]*W+s.b[0]];if(a!==main||b!==main)continue;stair(s.x,s.y,s.n);used.push([s.x,s.y]);added++}}
+  C=comp();main=C[ENT[1]*W+ENT[0]];
+  // anything still unreachable becomes dense forest: no grass, no spawns, no loot
+  for(let y=6;y<H-6;y++)for(let x=6;x<W-6;x++){if(C[y*W+x]<0||C[y*W+x]===main)continue;if(free2x2(m,x,y)&&E[y][x]===E[y+1]?.[x+1]&&C[(y+1)*W+x+1]===C[y*W+x])otree(m,x,y)}
+  C=comp();main=C[ENT[1]*W+ENT[0]];
+  // ---- 3) ground dressing: grass meadows per tier, flowers, rocky summits ----
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++){if(m.ground[y][x]!==0||m.walk[y][x])continue;const L=E[y][x],n=vnz(x*16,y*16,707,7*16),f=vnz(x*16,y*16,708,4*16);
+    if(C[y*W+x]!==main)continue;if(L===3&&n>.42)m.ground[y][x]=8;else if(n>.6)m.ground[y][x]=3;else if(f>.82)m.ground[y][x]=4;else if(L>=2&&n<.2)m.ground[y][x]=8}
+  // ---- 4) the trail: east gate to the north and west gates (plus side paths to the rest stops) ----
   const bfs=(sx,sy,tx,ty)=>{const P=new Int32Array(W*H).fill(-2);P[sy*W+sx]=-1;const q=[[sx,sy]];let h=0;while(h<q.length){const[a,b]=q[h++];if(a===tx&&b===ty)break;
-      for(const[dx,dy]of[[1,0],[-1,0],[0,1],[0,-1]]){const X=a+dx,Y=b+dy;if(inb(X,Y)&&!m.walk[Y][X]&&P[Y*W+X]===-2){P[Y*W+X]=b*W+a;q.push([X,Y])}}}
-    const out=[];let c=ty*W+tx;if(P[c]===-2)return out;while(c>=0){out.push([c%W,Math.floor(c/W)]);c=P[c]}return out};
-  for(const[tx,ty]of[[64,1],[1,64]])for(const[a,b]of bfs(W-2,64,tx,ty))for(const[dx,dy]of[[0,0],[1,0],[0,1]]){const X=a+dx,Y=b+dy;if(inb(X,Y)&&[0,3,4,8].includes(m.ground[Y][X])&&!m.walk[Y][X])m.ground[Y][X]=1}
-  // shelves still cut off become wild woodland (no wild spawns there)
-  for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(C[y*W+x]>=0&&C[y*W+x]!==main&&m.ground[y][x]===3)m.ground[y][x]=0;
-  // decorative mesa tops nobody can reach get a little woodland
-  for(let y=6;y<H-6;y+=2)for(let x=6;x<W-6;x+=2)if(C[y*W+x]>=0&&C[y*W+x]!==main&&hsh(x,y,714)<.8&&free2x2(m,x,y)&&E[y][x]===E[y+1][x+1])otree(m,x,y);
-  // 11) wild zones by region; levels 14-18 (deeper and higher = tougher)
-  m.zones=[];const pools=[{voltusk:4,snipant:3,scrattle:2},{phantern:4,mesmamba:3,scrattle:2},{mesmamba:4,voltusk:3,phantern:2},{snipant:4,phantern:3,voltusk:2}];
-  for(let zy=0;zy<4;zy++)for(let zx=0;zx<4;zx++){const x0=4+zx*30,y0=4+zy*30,lo=14+Math.floor((3-zx+zy)/2.4);m.zones.push({n:'r3_'+zx+zy,x0,y0,x1:x0+29,y1:y0+29,w:pools[(zx+zy*3)%4],max:2,lv:[Math.min(17,lo),Math.min(18,lo+1)],g:[3]})}
-  // 12) trainers along the trail, items, fire pits, signs
+      for(const[dx,dy]of N4){const X=a+dx,Y=b+dy;if(inb(X,Y)&&!m.walk[Y][X]&&P[Y*W+X]===-2){P[Y*W+X]=b*W+a;q.push([X,Y])}}}const out=[];let c=ty*W+tx;if(P[c]===-2)return out;while(c>=0){out.push([c%W,Math.floor(c/W)]);c=P[c]}return out};
+  const pave=pts=>{for(const[a,b]of pts)for(const[dx,dy]of[[0,0],[1,0],[0,1]]){const X=a+dx,Y=b+dy;if(inb(X,Y)&&[0,3,4,8].includes(m.ground[Y][X])&&!m.walk[Y][X])m.ground[Y][X]=1}};
+  for(const[tx,ty]of[[64,1],[1,64]])pave(bfs(ENT[0],ENT[1],tx,ty));
+  // ---- 5) shelves: measure each reachable shelf (tier region) for loot, rest stops and trainers ----
+  const shelf=new Int32Array(W*H).fill(-1),shelves=[];
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++){if(m.walk[y][x]||C[y*W+x]!==main||shelf[y*W+x]>=0||m.ground[y][x]===11)continue;const L=E[y][x],id=shelves.length,q=[[x,y]],t=[];shelf[y*W+x]=id;
+    while(q.length){const[a,b]=q.pop();t.push([a,b]);for(const[dx,dy]of N4){const X=a+dx,Y=b+dy;if(inb(X,Y)&&!m.walk[Y][X]&&shelf[Y*W+X]<0&&E[Y][X]===L&&m.ground[Y][X]!==11){shelf[Y*W+X]=id;q.push([X,Y])}}}
+    shelves.push({id,L,t})}
+  const farFrom=(sh,from)=>{let b=null,bd=-1;for(const[x,y]of sh.t){if(m.ground[y][x]===1||m.obj[y][x])continue;let d=1e9;for(const[fx,fy]of from)d=Math.min(d,Math.hypot(fx-x,fy-y));if(d>bd){bd=d;b=[x,y]}}return b};
+  const stairs=[];for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(m.ground[y][x]===11&&m.ground[y-1]?.[x]!==11)stairs.push([x,y]);
+  const LOOT=[[],[['tether',2],['wood',1],['potion',1]],[['potion',2],['tether',3]],[['tether',5],['potion',3],['wood',3]]];let li=0;
+  for(const sh of shelves.filter(s=>s.L>0&&s.t.length>=110).sort((a,b)=>b.L-a.L||b.t.length-a.t.length)){const p=farFrom(sh,stairs);if(!p)continue;const opts=LOOT[sh.L],[id,n]=opts[li++%opts.length];ritem(m,p[0],p[1],id,n)}
+  // valley-floor finds too, away from the trail
+  {const trail=[];for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(m.ground[y][x]===1)trail.push([x,y]);const floor=shelves.filter(s=>s.L===0&&s.t.length>200);
+    for(const sh of floor.slice(0,4)){const p=farFrom(sh,trail.concat(stairs));if(p)ritem(m,p[0],p[1],['potion','tether','wood','potion'][floor.indexOf(sh)],2)}}
+  // rest stops: a campfire on the two biggest plateaus, linked to the trail by a footpath
+  for(const sh of shelves.filter(s=>s.L>0).sort((a,b)=>b.t.length-a.t.length).slice(0,2)){let cx=0,cy=0;for(const[x,y]of sh.t){cx+=x;cy+=y}cx/=sh.t.length;cy/=sh.t.length;
+    let b=null,bd=1e9;for(const[x,y]of sh.t){const d=Math.hypot(x-cx,y-cy);if(d<bd&&!m.obj[y][x]&&m.ground[y-2]?.[x]!==10&&m.ground[y+2]?.[x]!==10&&m.ground[y][x-3]!==10&&m.ground[y][x+3]!==10){bd=d;b=[x,y]}}if(b)rpit(m,b[0],b[1])}
+  // ---- 6) wild creatures: tall grass on each tier, tougher the higher you climb ----
+  const POOLS=[{scrattle:3,snipant:3,voltusk:2},{snipant:3,phantern:3,scrattle:2},{voltusk:3,mesmamba:3,phantern:2},{mesmamba:4,voltusk:3,phantern:3}];
+  m.zones=[0,1,2,3].map(L=>{const tiles=[];for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(m.ground[y][x]===3&&E[y][x]===L&&C[y*W+x]===main)tiles.push([x,y]);
+    return{n:'r3_tier'+L,x0:0,y0:0,x1:W-1,y1:H-1,w:POOLS[L],max:L===0?3:2,lv:[14+L,15+L],g:[3],tiles}}).filter(z=>z.tiles.length);
+  // ---- 7) trainers: some on the trail, some guarding the stairs up to the high shelves ----
   const trail=[];for(let y=6;y<H-6;y++)for(let x=6;x<W-6;x++)if(m.ground[y][x]===1&&C[y*W+x]===main)trail.push([x,y]);
-  const near=(x,y,r)=>{let b=null,bd=1e9;for(const[a,c]of trail){const d=Math.hypot(a-x,c-y);if(d<bd&&d<r){bd=d;b=[a,c]}}return b};
-  const TR=[['ranger','hiker','RANGER OSWIN',[{id:'voltusk',lv:16},{id:'snipant',lv:15}],"RANGER OSWIN: These wilds swallow the careless. Show me you can handle yourself!","RANGER OSWIN: Solid. You'll do fine out here.","RANGER OSWIN: The high shelves are where the strong ones nest. Stairs are your friend."],
-    ['ace','rival','ACE TAMER DAX',[{id:'umbrynx',lv:16},{id:'phantern',lv:16}],"ACE TAMER DAX: A ribbon, huh? Mine's coming. Right after I beat you.","ACE TAMER DAX: ...Okay, maybe not right after.","ACE TAMER DAX: There's a lake up north where Phanterns circle at dusk."],
+  const freeAt=(x,y)=>inb(x,y)&&!m.walk[y][x]&&m.ground[y][x]!==11&&!m.rnpcs.some(n=>Math.abs(n.x-x)+Math.abs(n.y-y)<12);
+  const TR=[['ranger','hiker','RANGER OSWIN',[{id:'voltusk',lv:16},{id:'snipant',lv:15}],"RANGER OSWIN: These wilds swallow the careless. Show me you can handle yourself!","RANGER OSWIN: Solid. You'll do fine out here.","RANGER OSWIN: The higher the shelf, the stronger the creatures. And the better the loot."],
+    ['ace','rival','ACE TAMER DAX',[{id:'umbrynx',lv:16},{id:'phantern',lv:16}],"ACE TAMER DAX: A ribbon, huh? Mine's coming. Right after I beat you.","ACE TAMER DAX: ...Okay, maybe not right after.","ACE TAMER DAX: Somebody stashed supplies on the summits. Haven't found them all yet."],
     ['bird','sailor','BIRDKEEPER LIO',[{id:'phantern',lv:15},{id:'phantern',lv:16}],"BIRDKEEPER LIO: My terns ride the updrafts off these cliffs. Try and keep up!","BIRDKEEPER LIO: Grounded! Ha, well flown anyway.","BIRDKEEPER LIO: The west road is closed past the gate. Someday, though."],
-    ['mystic','maren','MYSTIC ELSPETH',[{id:'mesmamba',lv:17}],"MYSTIC ELSPETH: The canyon whispers. It says you will lose.","MYSTIC ELSPETH: The canyon was wrong. It happens.","MYSTIC ELSPETH: Mesmamba hides in the tall grass on the high shelves. Mind its eyes."],
-    ['camper','girl','CAMPER PIA',[{id:'scrattle',lv:15},{id:'cindercub',lv:15},{id:'snipant',lv:15}],"CAMPER PIA: You're not leaving this campsite without a battle!","CAMPER PIA: Fine, fine. Marshmallow?","CAMPER PIA: The fire pits up here are free to use if you bring wood."],
+    ['mystic','maren','MYSTIC ELSPETH',[{id:'mesmamba',lv:17}],"MYSTIC ELSPETH: You climbed all this way to lose. The stairs whispered it.","MYSTIC ELSPETH: The stairs were wrong. It happens.","MYSTIC ELSPETH: Mesmamba nest in the grass up top. Mind its eyes."],
+    ['camper','girl','CAMPER PIA',[{id:'scrattle',lv:15},{id:'cindercub',lv:15},{id:'snipant',lv:15}],"CAMPER PIA: You're not getting past my campsite without a battle!","CAMPER PIA: Fine, fine. Marshmallow?","CAMPER PIA: Campfires up here are free to use if you've got wood."],
     ['hiker','hiker','HIKER GRUM',[{id:'voltusk',lv:17},{id:'fistinel',lv:16}],"HIKER GRUM: Three tiers up and my legs are fine! Battle!","HIKER GRUM: My legs are fine. My pride, less so.","HIKER GRUM: The north gate's just a gate for now. Nothing past it but fog."]];
-  [[100,58],[70,62],[40,44],[64,30],[36,92],[88,100]].forEach(([x,y],k)=>{const p=near(x,y,30);if(!p)return;const[id,look,name,team,intro,win,after]=TR[k];
-    let px=p[0]+1,py=p[1];if(m.walk[py]?.[px])px=p[0]-1;if(m.walk[py]?.[px])return;rnpc(m,{id:'r3'+id,look,x:px,y:py,dir:'down',kind:'trainer',name,team,diff:'normal',intro:[intro],win,after})});
-  const spots=[[110,40,'potion',3],[90,20,'tether',3],[60,80,'wood',2],[30,30,'potion',3],[20,100,'tether',4],[100,110,'potion',2],[50,110,'wood',2],[16,60,'tether',3],[76,40,'potion',2],[44,70,'tether',2]];
-  for(const[x,y,id,n]of spots){let b=null;for(let r=0;r<10&&!b;r++)for(let j=-r;j<=r&&!b;j++)for(let i=-r;i<=r&&!b;i++){const X=x+i,Y=y+j;if(inb(X,Y)&&!m.walk[Y][X]&&C[Y*W+X]===main&&m.ground[Y][X]!==1)b=[X,Y]}if(b)ritem(m,b[0],b[1],id,n)}
-  for(const[x,y]of[[96,70],[40,40]]){const p=near(x,y,20);if(p&&m.ground[p[1]-2]?.[p[0]]!==10)rpit(m,p[0],p[1]-2)}
-  sign(m,W-6,61,"TALONREACH WILDS\nMillhaven to the east.\nThe land climbs in shelves. Use the stairs to reach the high ground.");
-  sign(m,62,5,"NORTH GATE\nThe road beyond is closed for now.");sign(m,5,61,"WEST GATE\nThe road beyond is closed for now.");
-  m.entries={east:{x:(W-3)*16,y:64*16+8},north:{x:64*16+8,y:4*16},west:{x:4*16,y:64*16+8}};
+  const spots=[];for(const[x,y]of[[100,58],[70,62],[40,44],[64,28]]){let b=null,bd=24;for(const[a,c]of trail){const d=Math.hypot(a-x,c-y);if(d<bd&&freeAt(a+1,c)){bd=d;b=[a+1,c]}}if(b)spots.push([...b,'down'])}
+  for(const[x,y]of stairs.filter(([x,y])=>E[y-2]?.[x]>=2||E[y+3]?.[x]>=2).sort((a,b)=>hsh(a[0],a[1],716)-hsh(b[0],b[1],716))){if(spots.length>=6)break;
+    const up=E[y-2]?.[x]>E[y+2]?.[x];const tx=x+2,ty=up?y-2:y+2;if(freeAt(tx,ty))spots.push([tx,ty,up?'down':'up'])}
+  spots.slice(0,6).forEach(([x,y,dir],k)=>{const[id,look,name,team,intro,win,after]=TR[k];rnpc(m,{id:'r3'+id,look,x,y,dir,kind:'trainer',name,team,diff:'normal',intro:[intro],win,after})});
+  // ---- 8) signs, entries, exits ----
+  sign(m,W-7,61,"TALONREACH WILDS\nMillhaven to the east.\nThe land climbs in shelves. Stairs lead up. The best finds wait on the summits.");
+  sign(m,62,6,"NORTH GATE\nThe road beyond is closed for now.");sign(m,6,61,"WEST GATE\nThe road beyond is closed for now.");
+  m.elev=E;m.entries={east:{x:(W-3)*16,y:64*16+8},north:{x:64*16+8,y:5*16},west:{x:5*16,y:64*16+8}};
   m.exits={east:{map:'millhaven',x:1,y:13,dir:'right'},north:{closed:"The path north is blocked by fog and fallen timber. It isn't open yet."},west:{closed:"A rope barrier spans the road west: CLOSED UNTIL FURTHER NOTICE."}};
   return m}
 /* ---------- the Ribbon Coliseum: first gym trial (also a free-battle stage) ---------- */
@@ -985,7 +1011,7 @@ WILD_SP.bulwhale={aggro:[80,110],turf:120,leash:260,flee:0,fac:8};WILD_SP.verdiv
 WILD_SP.voltusk={aggro:[85,120],turf:150,leash:340,flee:0,fac:4};WILD_SP.mesmamba={aggro:[150,190],turf:170,leash:300,flee:.2,fac:5};WILD_SP.phantern={aggro:[110,160],turf:130,leash:380,flee:.25,fac:6};
 async function startRoute(id,entry){const r=OW.maps[id];if(!AC){try{AC=new(window.AudioContext||window.webkitAudioContext)()}catch(e){}}
   await fadeTo(1,.3);
-  MW=r.w;MH=r.h;WW=MW*16;WH=MH*16;MINI=null;MAP={ground:r.ground,obj:r.obj,walk:r.walk,shot:r.shot};WORLD=r.cvs;
+  MW=r.w;MH=r.h;WW=MW*16;WH=MH*16;MINI=null;softTrees(r);MAP={ground:r.ground,obj:r.obj,walk:r.walk,shot:r.shot};WORLD=r.cvs;
   newGame(OW.party.map(c=>({id:c.id,lv:c.lv,hp:c.hp,ht:c.ht})),[],'easy');
   const e=r.entries[entry]||r.entries.south,P=G.f[0];P.x=e.x;P.y=e.y;P.aim=-PI/2;P.invuln=1.5;
   G.start=0;G.route={id,map:r,spawnT:1,turfT:24,wipe:0,signCd:0,npcs:r.rnpcs||[],arena:null,busy:0};G.focus=null;G.kos=null;
@@ -1003,7 +1029,7 @@ async function startRoute(id,entry){const r=OW.maps[id];if(!AC){try{AC=new(windo
     await say("LARCH: Fight what you must, and there's no rest on the trail, so heal up before you head out. And if the Warren and the Mounds start a turf war... maybe watch from a distance. Or don't. I'm a scientist, not your mother.");G.paused=false}}
 function spawnWild(initial){const R=G.route,m=R.map,P=G.f[0];if(!m.zones||!m.zones.length)return;const wild=G.f.filter(f=>f.wild&&!f.gone);if(wild.length>=(m.wildCap||6))return;
   const zs=m.zones.filter(z=>wild.filter(f=>f.zone===z).length<z.max);if(!zs.length)return;const z=zs[Math.floor(Math.random()*zs.length)];
-  for(let k=0;k<20;k++){const X=z.x0+Math.floor(Math.random()*(z.x1-z.x0+1)),Y=z.y0+Math.floor(Math.random()*(z.y1-z.y0+1));const g=m.ground[Y]?.[X];if(!(z.g||[3,8]).includes(g)||m.walk[Y][X])continue;if(R.arena&&X*16>R.arena.x0-40&&X*16<R.arena.x1+40&&Y*16>R.arena.y0-40&&Y*16<R.arena.y1+40)continue;
+  for(let k=0;k<20;k++){let X,Y;if(z.tiles&&z.tiles.length){const t=z.tiles[Math.floor(Math.random()*z.tiles.length)];X=t[0];Y=t[1]}else{X=z.x0+Math.floor(Math.random()*(z.x1-z.x0+1));Y=z.y0+Math.floor(Math.random()*(z.y1-z.y0+1))}const g=m.ground[Y]?.[X];if(!(z.g||[3,8]).includes(g)||m.walk[Y][X])continue;if(R.arena&&X*16>R.arena.x0-40&&X*16<R.arena.x1+40&&Y*16>R.arena.y0-40&&Y*16<R.arena.y1+40)continue;
     const x=X*16+8,y=Y*16+12;if(Math.hypot(x-P.x,y-P.y)<200)continue;const vx=x-G.cam.x,vy=y-G.cam.y;if(!initial&&vx>-30&&vx<W+30&&vy>-30&&vy<H+30)continue;
     const tot=Object.values(z.w).reduce((a,b)=>a+b,0);let r=Math.random()*tot,id='scrattle';for(const[k2,v]of Object.entries(z.w)){r-=v;if(r<=0){id=k2;break}}
     mkWild(id,z.lv[0]+Math.floor(Math.random()*(z.lv[1]-z.lv[0]+1)),x,y,z);return}}

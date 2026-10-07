@@ -150,15 +150,22 @@ const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 const clamp=(v,a,b)=>v<a?a:v>b?b:v;
 const angDiff=(a,b)=>{let d=a-b;while(d>PI)d-=2*PI;while(d<-PI)d+=2*PI;return d};
 const tileAt=(x,y)=>{const X=Math.floor(x/TS),Y=Math.floor(y/TS);return(X<0||Y<0||X>=MW||Y>=MH)?null:{X,Y}};
-function solidWalk(x,y){const t=tileAt(x,y);return!t||MAP.walk[t.Y][t.X]===1}
-function solidShot(x,y){const t=tileAt(x,y);return!t||MAP.shot[t.Y][t.X]===1}
+// trees are 'soft' in battle maps (walk/shot === 3): only the trunk blocks, so creatures slip past and behind canopies
+const TRUNK_R=6;
+function trunkAt(X,Y){for(const[dx,dy]of[[0,0],[-1,0],[0,-1],[-1,-1]]){const x=X+dx,y=Y+dy;if(MAP.obj[y]&&MAP.obj[y][x]===1)return{x:x*TS+16,y:y*TS+27}}return null}
+function softTrees(M){if(!M||M.__soft)return;M.__soft=1;const H_=M.ground.length,W_=M.ground[0].length;
+  for(let Y=0;Y<H_;Y++)for(let X=0;X<W_;X++){const o=M.obj[Y][X];if((o===1||o===9)&&M.walk[Y][X]===1&&[0,1,3,4,8,9].includes(M.ground[Y][X])){M.walk[Y][X]=3;if(M.shot[Y][X]===1)M.shot[Y][X]=3}}}
+function solidWalk(x,y){const t=tileAt(x,y);if(!t)return true;const v=MAP.walk[t.Y][t.X];if(v===3){const tr=trunkAt(t.X,t.Y);return!!tr&&Math.hypot(x-tr.x,(y-tr.y)*1.5)<TRUNK_R+1}return v===1}
+function solidShot(x,y){const t=tileAt(x,y);if(!t)return true;const v=MAP.shot[t.Y][t.X];if(v===3){const tr=trunkAt(t.X,t.Y);return!!tr&&Math.hypot(x-tr.x,(y+6-tr.y)*1.5)<TRUNK_R}return v===1}
 function groundAt(x,y){const t=tileAt(x,y);return t?MAP.ground[t.Y][t.X]:0}
 function los(a,b){const d=Math.hypot(b.x-a.x,b.y-a.y),n=Math.ceil(d/6);for(let i=1;i<n;i++){const k=i/n;if(solidShot(a.x+(b.x-a.x)*k,a.y+(b.y-a.y)*k))return false}return true}
 function rayLen(x,y,a,max){for(let l=6;l<max;l+=4)if(solidShot(x+Math.cos(a)*l,y+Math.sin(a)*l))return l;return max}
 function freeSpot(x,y,r=7){for(const[dx,dy]of[[0,0],[r,0],[-r,0],[0,r],[0,-r]])if(solidWalk(x+dx,y+dy))return false;return true}
 function resolve(f){
   const r=f.r,x0=Math.floor((f.x-r)/TS),x1=Math.floor((f.x+r)/TS),y0=Math.floor((f.y-r)/TS),y1=Math.floor((f.y+r)/TS);
-  for(let Y=y0;Y<=y1;Y++)for(let X=x0;X<=x1;X++){if(X>=0&&Y>=0&&X<MW&&Y<MH&&MAP.walk[Y][X]!==1)continue;
+  let tr0=null;
+  for(let Y=y0;Y<=y1;Y++)for(let X=x0;X<=x1;X++){if(X>=0&&Y>=0&&X<MW&&Y<MH&&MAP.walk[Y][X]===3){const tr=trunkAt(X,Y);if(tr&&(!tr0||tr0.x!==tr.x||tr0.y!==tr.y)){tr0=tr;const dx=f.x-tr.x,dy=(f.y-tr.y)*1.5,d=Math.hypot(dx,dy),mn=TRUNK_R+r*.75;if(d<mn){if(d<.01){f.y=tr.y+mn/1.5}else{f.x=tr.x+dx/d*mn;f.y=tr.y+dy/d*mn/1.5}}}continue}
+    if(X>=0&&Y>=0&&X<MW&&Y<MH&&MAP.walk[Y][X]!==1)continue;
     const cx=clamp(f.x,X*TS,X*TS+TS),cy=clamp(f.y,Y*TS,Y*TS+TS),dx=f.x-cx,dy=f.y-cy,d=Math.hypot(dx,dy);
     if(d<r){if(d<.01){f.y=Y*TS+TS+r}else{f.x=cx+dx/d*r;f.y=cy+dy/d*r}}}
   f.x=clamp(f.x,r,WW-r);f.y=clamp(f.y,r,WH-r);if(solidWalk(f.x,f.y))unstickF(f)}
@@ -1015,7 +1022,7 @@ function squadStats(){const f=G.f[0];$('pstats').innerHTML=f.team.map((u,i)=>{co
 let cv,running=false,last=0;
 function fit(){const fr=$('frame');const s=Math.min(innerWidth/W,innerHeight/H);fr.style.width=W*s+'px';fr.style.height=H*s+'px';const tc=$('tx');if(tc){const d=window.devicePixelRatio||1;tc.width=Math.round(W*s*d);tc.height=Math.round(H*s*d)}}
 function startBattle(enemy){
-  setView(BW,BH);  APP.mode='free';OW.running=false;{const S=freeStage(sel.stage||'meadow');MW=S.w;MH=S.h;WW=MW*TS;WH=MH*TS;MAP=S.map;WORLD=S.world;SPAWN[0]={x:S.sp[0][0],y:S.sp[0][1]};SPAWN[1]={x:S.sp[1][0],y:S.sp[1][1]}}MINI=null;$('hud').hidden=false;
+  setView(BW,BH);  APP.mode='free';OW.running=false;{const S=freeStage(sel.stage||'meadow');MW=S.w;MH=S.h;WW=MW*TS;WH=MH*TS;MAP=S.map;softTrees(MAP);WORLD=S.world;SPAWN[0]={x:S.sp[0][0],y:S.sp[0][1]};SPAWN[1]={x:S.sp[1][0],y:S.sp[1][1]}}MINI=null;$('hud').hidden=false;
   if(!AC){try{AC=new(window.AudioContext||window.webkitAudioContext)()}catch(e){}}
   clearInterval(animTimer);
   newGame(sel.team.slice(),enemy||pickRandom(3),sel.diff);

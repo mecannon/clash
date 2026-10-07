@@ -1268,11 +1268,27 @@ function tileSand(x0,y0,X,Y,c,G){R_(c,x0,y0,16,16,SAND[1]);for(let i=0;i<10;i++)
   if(hsh(X,Y,93)<.35){const px_=x0+3+Math.floor(hsh(X,Y,94)*9),py_=y0+3+Math.floor(hsh(X,Y,95)*9);R_(c,px_,py_,3,1,SAND[3]);R_(c,px_+1,py_+1,2,1,SAND[2])}
   if(hsh(X,Y,96)<.12){const px_=x0+4+Math.floor(hsh(X,Y,97)*8),py_=y0+5+Math.floor(hsh(X,Y,98)*7);R_(c,px_,py_,3,2,'#f0e0e0');R_(c,px_,py_,1,1,'#e89090');R_(c,px_+2,py_+1,1,1,'#c87878')}
   const g=(dx,dy)=>G&&G[Y+dy]?.[X+dx];if(g(0,1)===2){R_(c,x0,y0+13,16,3,'#e8f4f0');R_(c,x0,y0+15,16,1,'#a8d8e8')}if(g(0,-1)===0||g(0,-1)===3){for(let i=0;i<16;i+=3)R_(c,x0+i,y0,2,1+((i*7)%3),'#6aa84a')}}
-function tileCliff(x0,y0,X,Y,c,G){const g=(dx,dy)=>G&&G[Y+dy]?.[X+dx];const top=g(0,-1)!==10,bot=g(0,1)!==10;
-  R_(c,x0,y0,16,16,'#7a6a5a');for(let r=0;r<16;r+=4){R_(c,x0,y0+r,16,1,'#5a4a3e');for(let i=((Y*3+r)%5);i<16;i+=6)R_(c,x0+i,y0+r+1,1,3,'#5a4a3e')}
-  for(let i=0;i<5;i++){const h=hsh(X,Y*5+i,81);R_(c,x0+Math.floor(h*14),y0+Math.floor(hsh(X*5+i,Y,82)*14),2,1,'#a8988a')}
-  if(top){R_(c,x0,y0,16,4,'#4f9a3e');R_(c,x0,y0+3,16,1,'#2f6e34');for(let i=0;i<16;i+=2)R_(c,x0+i,y0+4,1,1+((i*5+X)%3),'#3a7a30')}
-  if(bot){R_(c,x0,y0+13,16,3,'#3e3228');R_(c,x0,y0+15,16,1,'rgba(0,0,0,.35)')}}
+// cliff rim (ground 10): the shelf's grass runs to a weathered rock lip on every side that drops to a lower tier.
+// lv(X,Y) gives each tile's tier; without it the old one-level guess (neighbours that aren't rim are lower) is used.
+function tileCliff(x0,y0,X,Y,c,G,lv){const me=lv?lv(X,Y):1,low=(dx,dy)=>lv?lv(X+dx,Y+dy)<me:(G&&G[Y+dy]?.[X+dx])!==10;
+  tileGrass(x0,y0,X,Y,c);
+  const L='#9a8a78',D='#5e5044',K='#3a3028',M='#3a7a30';
+  const edge=(x,y,w,h,horiz,outer)=>{R_(c,x,y,w,h,L);if(horiz){for(let i=0;i<w;i++){const k=hsh(X*16+i,Y,83);R_(c,x+i,outer>0?y+h:y-1,1,1,k<.5?D:K);if(k<.22)R_(c,x+i,y,1,1,'#b8a894')}}
+    else for(let i=0;i<h;i++){const k=hsh(X,Y*16+i,84);R_(c,outer>0?x+w:x-1,y+i,1,1,k<.5?D:K);if(k<.22)R_(c,x,y+i,1,1,'#b8a894')}};
+  // grass tufts lean over the lip, then the rock band itself
+  if(low(0,1)){edge(x0,y0+13,16,3,1,1);for(let i=0;i<16;i+=3)if(hsh(X*7+i,Y,85)<.6)R_(c,x0+i,y0+12,2,2,M)}
+  if(low(0,-1)){edge(x0,y0,16,2,1,1);R_(c,x0,y0+2,16,1,K)}
+  if(low(-1,0)){edge(x0,y0,2,16,0,1);R_(c,x0+2,y0,1,16,'rgba(40,30,24,.35)')}
+  if(low(1,0)){edge(x0+14,y0,2,16,0,-1);R_(c,x0+13,y0,1,16,'rgba(40,30,24,.35)')}
+  // outer corners
+  if(low(1,1)&&!low(0,1)&&!low(1,0))R_(c,x0+13,y0+13,3,3,L);if(low(-1,1)&&!low(0,1)&&!low(-1,0))R_(c,x0,y0+13,3,3,L)}
+// natural cliff face texture (16 wide x 96 tall, v=1 at the top): mossy overhang, layered strata, cracks, darker toe
+function cliffFaceCv(){const cv=mkCanvas(16,96),c=cv.getContext('2d');const S=['#8a7a68','#7e6e5e','#948472','#76685a'];
+  let y=0,k=0;while(y<96){const h=3+Math.floor(hsh(k,1,86)*6);R_(c,0,y,16,h,S[k%4]);R_(c,0,y,16,1,'#a89886');R_(c,0,y+h-1,16,1,'#5e5044');
+    for(let i=0;i<3;i++){const x=Math.floor(hsh(k,i+2,87)*15);R_(c,x,y+1,1,Math.max(1,h-2),'#5a4c40')}y+=h;k++}
+  for(let i=0;i<14;i++){const x=Math.floor(hsh(i,3,88)*15),yy=8+Math.floor(hsh(i,4,88)*80);R_(c,x,yy,2,1,'#b4a490')}
+  R_(c,0,0,16,3,'#4f9a3e');R_(c,0,3,16,1,'#2f6e34');for(let i=0;i<16;i++){const d=Math.floor(hsh(i,5,89)*5);if(d>1)R_(c,i,4,1,d,i%2?'#3a7a30':'#2f6e34')}
+  return cv}
 function drawThorn(c,x,y){R_(c,x+1,y+3,14,12,'#14301e');R_(c,x+2,y+2,12,12,'#1f4a2c');R_(c,x+3,y+3,10,9,'#2f6e34');
   for(const[a,b]of[[3,4],[9,3],[12,7],[5,9],[10,11],[2,8]]){R_(c,x+a,y+b,2,1,'#4f9a3e');R_(c,x+a+1,y+b-1,1,1,'#c860d8')}
   for(const[a,b]of[[1,6],[14,5],[7,1],[13,12],[0,11]]){R_(c,x+a,y+b,1,2,'#e8e0f0')}}

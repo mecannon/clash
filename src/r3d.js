@@ -301,12 +301,12 @@ function elevAt(def,x,y){if(!def)return 0;const ev=elevOf(def);if(!ev.any)return
 function EL(x,y){return ACTIVE?elevAt(ACTIVE.def,x,y):0}
 let ROCKTEX=null;
 function rockTex(dungeon){const cv=mkCanvas(16,32),c=cv.getContext('2d');if(dungeon){c.fillStyle='#2a2438';c.fillRect(0,0,16,32);for(let r=0;r<32;r+=5){c.fillStyle='#1a1626';c.fillRect(0,r,16,1);c.fillRect((r*3)%16,r,1,5);c.fillStyle='#3a3450';c.fillRect(((r*3)+4)%16,r+1,5,1)}c.fillStyle='#14101e';c.fillRect(0,28,16,4)}
-  else{c.fillStyle='#7a6a5a';c.fillRect(0,0,16,32);for(let r=0;r<32;r+=4){c.fillStyle='#5a4a3e';c.fillRect(0,r,16,1);for(let i=(r*5)%6;i<16;i+=6)c.fillRect(i,r+1,1,3)}c.fillStyle='#a8988a';for(let i=0;i<8;i++)c.fillRect((i*7)%14,(i*11)%30,2,1);c.fillStyle='#4f9a3e';c.fillRect(0,0,16,2);c.fillStyle='#2f6e34';c.fillRect(0,2,16,1);c.fillStyle='#3e3228';c.fillRect(0,29,16,3)}
+  else{const cv2=cliffFaceCv();const t=mkTex(cv2);t.wrapS=t.wrapT=TH.RepeatWrapping;return t}
   const t=mkTex(cv);t.wrapS=t.wrapT=TH.RepeatWrapping;return t}
 function buildElevation(def,group,disp,gtex,GW,GH,M){const ev=elevOf(def);if(!ev.any)return;const H=ev.H;
   const tp=[],tu=[],ti=[],sp=[],su=[],si=[];let tn=0,sn=0;
   const top=(x0,z0,x1,z1,h0,h1)=>{tp.push(x0,h0,z0,x1,h0,z0,x1,h1,z1,x0,h1,z1);const U=x=>(M+x)/GW,V=z=>1-(M+z)/GH;tu.push(U(x0),V(z0),U(x1),V(z0),U(x1),V(z1),U(x0),V(z1));ti.push(tn,tn+1,tn+2,tn,tn+2,tn+3);tn+=4};
-  const face=(ax,az,bx,bz,h1,h0=0)=>{const L=Math.hypot(bx-ax,bz-az)/16;sp.push(ax,h0,az,bx,h0,bz,bx,h1,bz,ax,h1,az);su.push(0,h0/32,L,h0/32,L,h1/32,0,h1/32);si.push(sn,sn+1,sn+2,sn,sn+2,sn+3);sn+=4};
+  const FV=def.dungeon?32:96,face=(ax,az,bx,bz,h1,h0=0)=>{const L=Math.hypot(bx-ax,bz-az)/16,v0=1-(h1-h0)/FV;sp.push(ax,h0,az,bx,h0,bz,bx,h1,bz,ax,h1,az);su.push(0,def.dungeon?h0/32:v0,L,def.dungeon?h0/32:v0,L,def.dungeon?h1/32:1,0,def.dungeon?h1/32:1);si.push(sn,sn+1,sn+2,sn,sn+2,sn+3);sn+=4};
   const lowN=(X,Y)=>ev.st(X,Y)?99:ev.lv(X,Y);
   for(let Y=0;Y<def.h;Y++)for(let X=0;X<def.w;X++){const x0=X*16,z0=Y*16,x1=x0+16,z1=z0+16;
     if(ev.hi(X,Y)){const L=ev.lv(X,Y),h=L*H;top(x0,z0,x1,z1,h,h);
