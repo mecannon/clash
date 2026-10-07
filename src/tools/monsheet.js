@@ -4,7 +4,7 @@ const fs=require('fs'),vm=require('vm'),path=require('path');const {createCanvas
 const src=fs.readFileSync(path.resolve(__dirname,'../spr.js'),'utf8');
 const ctx={Math,console,mkCanvas:(w,h)=>createCanvas(w,h)};vm.createContext(ctx);vm.runInContext(src,ctx);
 const ALL={bulwhale:['norm','turret'],fistinel:['norm','guard'],frostbunt:['norm'],verdivy:['norm'],snipant:['norm','snap'],scrattle:['norm'],cindercub:['norm','charge'],umbrynx:['norm','rush'],
-  voltusk:['norm','roll','charge'],mesmamba:['norm','charge'],phantern:['norm','veil'],dunemaw:['norm','burrow'],ampoule:['norm','charge'],prismoth:['norm']};
+  voltusk:['norm','roll','charge'],mesmamba:['norm','charge'],phantern:['norm','veil'],dunemaw:['norm','burrow'],ampoule:['norm','charge'],prismoth:['norm'],calderursa:['norm'],dreadwhale:['norm'],verdryad:['norm']};
 const out=process.argv[2]||'sheet.png',S=+(process.argv[3]||4),ids=(process.argv[4]||Object.keys(ALL).join(',')).split(',');
 const rows=[];for(const id of ids){const fn=ctx['draw'+id[0].toUpperCase()+id.slice(1)];if(!fn){console.log('missing',id);continue}for(const st of ALL[id])rows.push([id,st,fn])}
 const cw=32*S+4,lab=110,cv=createCanvas(lab+cw*8+8,rows.length*(32*S+6)+30),c=cv.getContext('2d');c.imageSmoothingEnabled=false;

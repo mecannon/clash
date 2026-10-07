@@ -1548,3 +1548,94 @@ function drawPrismoth(dir,fr,st){const g=SG(32,32),P=PAL,F=P.fluff,C=P.crys,K=P.
     px(g,fr?25:23,(fr?16:1)+b,'#ffffff');
   }
   fillHoles(g);return g}
+
+/* ===== STARTER EVOLUTIONS: CALDERURSA (fire/ground), DREADWHALE (water/steel), VERDRYAD (grass/fairy) ===== */
+PAL.cfur=RP('#3a1006','#8a2c12','#b8441c','#de662a','#f89a58');
+PAL.basalt=RP('#100c12','#2a2430','#443c48','#625660','#857884');
+PAL.magma=RP('#5a1000','#d03a10','#f47a18','#f8c040','#fff6c0');
+PAL.navy=RP('#0c1638','#1c3a78','#2c56a2','#4a80cc','#86baf2');
+const CEYE='#f8d040';
+function magCrack(g,pts){for(let i=0;i<pts.length-1;i++)lineG(g,...pts[i],...pts[i+1],PAL.magma.r[2]);px(g,...pts[0],PAL.magma.r[3])}
+function drawCalderursa(dir,fr,st){const g=SG(32,32),P=PAL,F=P.cfur,Bs=P.basalt,Mg=P.magma,Bl=P.belly,b=fr?1:0;
+  const flames=(x0,x1,y)=>{for(let x=x0;x<=x1;x++){const h=1+((x*5+fr*3)%3);for(let k=0;k<h;k++)px(g,x,y-k,k===h-1?Mg.r[3]:Mg.r[2])}};
+  if(dir==='down'){
+    part(g,PG([[9,11+b],[11.5,3+b],[20.5,3+b],[23,11+b]]),Bs);hline(g,12,20,3+b,Mg.r[3]);hline(g,12,20,4+b,Mg.r[2]);flames(13,19,2+b);
+    part(g,E(11,29,3.5,2.2),Bs);part(g,E(21,29,3.5,2.2),Bs);
+    const bd=part(g,E(16,20+b,10.5,8.5),F);part(g,E(16,22+b,6,6),Bl,{flat:2,line:false});
+    for(const s of[1,-1]){const m=x=>s>0?x:32-x;part(g,PG([[m(4),13+b],[m(11),12+b],[m(11),18+b],[m(4.5),20+b]]),Bs);magCrack(g,[[m(6),15+b],[m(8),17+b],[m(9),15+b]]);
+      part(g,E(m(6),23+b,3.5,5),Bs);px(g,m(5),26+b,Mg.r[2]);px(g,m(7),27+b,Mg.r[3]);pxs(g,[[m(4),28+b],[m(6),28+b],[m(8),28+b]],'#e8e0d8')}
+    for(const ex of[9,23])part(g,E(ex,6+b,2.6,2.6),F);px(g,9,6+b,Bs.r[1]);px(g,23,6+b,Bs.r[1]);
+    part(g,E(16,11+b,7,6),F);part(g,E(16,14+b,3.6,2.5),Bl);
+    px(g,15,13+b,INK);px(g,16,13+b,INK);px(g,17,13+b,INK);px(g,16,14+b,INK);
+    for(const ex of[12,19]){px(g,ex,10+b,CEYE);px(g,ex+1,10+b,CEYE);px(g,ex,11+b,INK);px(g,ex+1,11+b,'#7a3a08')}
+    magCrack(g,[[13,6+b],[15,8+b]]);magCrack(g,[[19,7+b],[18,8+b]]);
+  }else if(dir==='up'){
+    part(g,E(11,29,3.5,2.2),Bs);part(g,E(21,29,3.5,2.2),Bs);
+    for(const s of[1,-1]){const m=x=>s>0?x:32-x;part(g,E(m(6),22+b,3.5,5),Bs)}
+    for(const ex of[9,23])part(g,E(ex,5+b,2.6,2.6),F);
+    part(g,E(16,9+b,7,5.5),F);
+    part(g,E(16,19+b,10.5,9),F);
+    part(g,E(16,16+b,7.5,6),Bs);part(g,E(16,15+b,4.5,2.6),Mg,{bias:.3});flames(13,19,13+b);
+    for(const s of[1,-1]){const m=x=>s>0?x:32-x;magCrack(g,[[m(10),20+b],[m(12),23+b],[m(11),25+b]])}
+  }else{
+    part(g,E(12,28,3,2.2),Bs);part(g,E(24,28,3,2.2),Bs);
+    const bd=part(g,E(18,20+b,10.5,7.5),F);part(g,DF(E(16,24+b,8,4),RR(0,0,31,21+b)),Bl,{flat:2,line:false});
+    part(g,PG([[13,15+b],[16.5,7+b],[23.5,7+b],[27,15+b]]),Bs);hline(g,17,23,7+b,Mg.r[3]);hline(g,17,23,8+b,Mg.r[2]);flames(18,22,6+b);magCrack(g,[[19,10+b],[20,13+b],[22,12+b]]);
+    part(g,E(10,24+b,3.5,5),Bs);px(g,9,27+b,Mg.r[2]);pxs(g,[[7,29],[9,29]],'#e8e0d8');
+    part(g,E(11,9+b,2.4,2.4),F);px(g,11,9+b,Bs.r[1]);
+    part(g,E(9,14+b,6,5.5),F);part(g,E(4,16+b,3,2.2),Bl);px(g,2,15+b,INK);px(g,2,16+b,INK);
+    px(g,7,13+b,CEYE);px(g,8,13+b,CEYE);px(g,7,14+b,INK);px(g,8,14+b,'#7a3a08');magCrack(g,[[10,10+b],[12,12+b]]);
+  }
+  fillHoles(g);return g}
+function drawDreadwhale(dir,fr,st){const g=SG(32,32),P=PAL,N=P.navy,Sl=P.steel,Br=P.brass,Bl=P.belly,b=fr?1:0;
+  const rivets=(m,y0,y1,x0,x1)=>{for(let y=y0;y<=y1;y+=3)for(let x=x0;x<=x1;x+=4)if(interior(m,g,x+(y%2)*2,y))px(g,x+(y%2)*2,y,Sl.r[3])};
+  if(dir==='down'){
+    for(const s of[1,-1]){const m=x=>s>0?x:32-x;part(g,PG([[m(5),20+b],[m(0),25+b],[m(2),27+b],[m(7),24+b]]),N)}
+    part(g,E(16,19+b,13,10),N);
+    const hull=part(g,DF(E(16,16+b,13,9),RR(0,17+b,31,31)),Sl);rivets(hull,9+b,15+b,5,27);hline(g,4,28,16+b,Sl.line);
+    part(g,E(16,25+b,8.5,4.5),Bl,{flat:2,line:false});for(let x=10;x<=22;x+=3)px(g,x,25+b,Bl.r[1]);
+    part(g,RR(13,4+b,19,9+b),Br);hline(g,13,19,4+b,Br.r[3]);part(g,E(16,8+b,2,1.6),Sl,{flat:0});px(g,16,8+b,INK);
+    for(const ex of[10,21]){px(g,ex,19+b,INK);px(g,ex+1,19+b,INK);px(g,ex,20+b,INK);px(g,ex+1,20+b,'#2a3a6a');px(g,ex,19+b,'#ffffff');hline(g,ex-1,ex+2,18+b,Sl.r[0])}
+    pxs(g,[[7,21+b],[25,21+b]],'#f0a0b8');hline(g,14,18,22+b,N.line);
+    for(const[x,y]of[[5,13],[27,13]]){part(g,E(x,y+b,1.6,1.6),Br,{flat:2});px(g,x,y+b,'#9ad0fc')}
+  }else if(dir==='up'){
+    part(g,PG([[16,24+b],[8,31],[13,30],[16,27+b],[19,30],[24,31]]),N);
+    for(const s of[1,-1]){const m=x=>s>0?x:32-x;part(g,PG([[m(5),18+b],[m(0),23+b],[m(2),25+b],[m(7),22+b]]),N)}
+    part(g,E(16,17+b,13,10),N);
+    const hull=part(g,E(16,15+b,11.5,8.5),Sl);rivets(hull,8+b,22+b,5,27);lineG(g,16,8+b,16,22+b,Sl.r[0]);
+    part(g,RR(13,9+b,19,14+b),Br);hline(g,13,19,9+b,Br.r[3]);part(g,RR(15,3+b,17,9+b),Sl);px(g,16,3+b,INK);
+  }else{
+    part(g,PG([[26,18+b],[31,11+b],[30,18+b],[31,25+b]]),N);
+    part(g,E(17,19+b,13,8.5),N);
+    const hull=part(g,DF(E(18,16+b,12,7.5),RR(0,17+b,31,31)),Sl);rivets(hull,10+b,15+b,8,28);hline(g,6,30,16+b,Sl.line);
+    part(g,DF(E(15,24+b,10,4),RR(0,0,31,21+b)),Bl,{flat:2,line:false});
+    part(g,PG([[14,24+b],[11,30],[15,29],[18,25+b]]),N);
+    part(g,RR(16,6+b,22,10+b),Br);hline(g,16,22,6+b,Br.r[3]);part(g,RR(9,7+b,16,8+b),Sl,{flat:2});px(g,9,7+b,INK);px(g,9,8+b,INK);
+    px(g,7,18+b,INK);px(g,8,18+b,INK);px(g,7,19+b,'#2a3a6a');px(g,8,18+b,'#ffffff');hline(g,6,9,17+b,Sl.r[0]);px(g,6,21+b,'#f0a0b8');lineG(g,3,22+b,7,23+b,N.line);
+    part(g,E(24,13+b,1.6,1.6),Br,{flat:2});px(g,24,13+b,'#9ad0fc');
+  }
+  fillHoles(g);return g}
+function drawVerdryad(dir,fr,st){const g=SG(32,32),P=PAL,Pt=P.petal,Bm=P.bloom,Lf=P.leaf,V=P.vine,Sk=P.skin,b=fr?1:0;
+  const gown=(cx,lean)=>{const sh=part(g,PG([[cx-5,18+b],[cx+5,18+b],[cx+10+lean,30],[cx-10+lean,30]]),Lf);for(let x=cx-9;x<=cx+9;x+=3){px(g,x+lean,30,Lf.r[3]);px(g,x+1+lean,29,Lf.r[3])}for(let y=21;y<=28;y+=3)lineG(g,cx,y+b-2,cx+(y%2?3:-3),y+b,Lf.r[1]);return sh};
+  const sparkle=()=>{for(const[x,y]of fr?[[3,8],[28,14],[5,24]]:[[28,6],[3,15],[27,25]]){px(g,x,y,'#ffffff');px(g,x+1,y,Pt.r[3]);px(g,x,y+1,Pt.r[3])}};
+  if(dir!=='left'){const up=dir==='up';
+    for(const s of[1,-1]){const m=x=>s>0?x:31-x;part(g,PG([[m(12),14+b],[m(4),9+b],[m(2),14+b],[m(6),19+b],[m(12),17+b]]),Pt,{lx:s>0?-.6:.6})}
+    gown(16,0);
+    for(const s of[1,-1]){const m=x=>s>0?x:31-x;part(g,PG([[m(11.5),7+b],[m(9),20+b],[m(11),21+b],[m(13),12+b]]),V);lineG(g,m(12),16+b,m(6),22+b,V.r[2]);px(g,m(6),23+b,Lf.r[3]);px(g,m(8),20+b,Lf.r[3])}
+    part(g,E(16,16+b,3.6,3.6),Sk);
+    for(const[x,y,rx,ry]of[[9,6,4,3.2],[23,6,4,3.2],[12,2.6,3.6,2.8],[20,2.6,3.6,2.8]])part(g,E(x,y+b,rx,ry),Pt);
+    part(g,E(16,11+b,4.6,4.4),up?V:Sk,{bias:.1});
+    part(g,E(16,4.5+b,3.6,2.6),Bm,{bias:.3});pxs(g,[[15,4+b],[17,5+b]],Bm.r[3]);
+    if(!up){for(const ex of[14,18]){px(g,ex,11+b,'#1e4a1c');px(g,ex,12+b,'#1e4a1c');px(g,ex,11+b,'#ffffff')}pxs(g,[[13,13+b],[19,13+b]],'#f8a0b8');px(g,16,14+b,Sk.line)}
+    else for(let y=8;y<=15;y+=2)px(g,16,y+b,V.r[3]);
+  }else{
+    part(g,PG([[17,13+b],[24,8+b],[27,12+b],[23,18+b],[17,17+b]]),Pt,{lx:.6});
+    gown(15,1);
+    part(g,PG([[17,8+b],[22,20+b],[20,21+b],[16,13+b]]),V);
+    part(g,E(15,16+b,3.2,3.4),Sk);lineG(g,13,16+b,8,21+b,V.r[2]);px(g,7,22+b,Lf.r[3]);
+    for(const[x,y,rx,ry]of[[20,5,4,3.2],[16,2.4,3.6,2.6],[10,5,3,2.6]])part(g,E(x,y+b,rx,ry),Pt);
+    part(g,E(15,11+b,4.2,4.4),Sk,{bias:.1});part(g,PG([[15,7+b],[20,9+b],[19,14+b],[17,13+b]]),V);
+    part(g,E(15,4.5+b,3,2.4),Bm,{bias:.3});
+    px(g,12,11+b,'#1e4a1c');px(g,12,12+b,'#1e4a1c');px(g,12,11+b,'#ffffff');px(g,12,13+b,'#f8a0b8');px(g,11,14+b,Sk.line);
+  }
+  sparkle();fillHoles(g);return g}

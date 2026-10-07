@@ -180,3 +180,108 @@ function drawProj2(p){const x=Math.round(p.x),y=Math.round(p.y),a=Math.atan2(p.v
     case'prism':case'prism2':{const L=p.kind==='prism'?4:3;ctx.save();ctx.translate(x,y);ctx.rotate(a);ctx.fillStyle='#2a3a78';ctx.fillRect(-L-1,-2,L*2+2,4);ctx.fillStyle=p.kind==='prism'?'#ff9ac0':'#8cc4ee';ctx.fillRect(-L,-1,L*2,2);ctx.fillStyle='#ffffff';ctx.fillRect(L-2,-1,2,1);ctx.restore();
       ctx.fillStyle=p.kind==='prism'?'#f8b2ca':'#c6ecff';ctx.fillRect(Math.round(p.x-c*7),Math.round(p.y-s*7),1,1);return true}}
   return false}
+
+/* ================= STARTER EVOLUTIONS (Lv 14) ================= */
+MONS.push(
+{id:'calderursa',n:'Calderursa',types:['fire','ground'],sz:1.2,stats:{hp:90,dmg:104,pdef:82,mdef:80,int:72,spe:66},cls:'mag',xp:150,draw:drawCalderursa,states:['norm'],ammo:{max:6,rl:1.4,unit:'globs',verb:'TAPPING MAGMA',d:'6 magma globs, then taps the vent for 1.4s.'},
+ role:'Siege',blurb:'Cindercub, grown into a walking volcano. It stopped throwing fire and started moving the ground: magma arcs over walls, vents split the earth under you, and the caldera on its back is always about to blow.',
+ moves:[
+  {k:'LMB',n:'Magma Lob',t:'fire',pow:'22 + pool',cd:.6,d:'Lob a glob of magma in an arc to the cursor. It sails over trees and rocks, splashes, burns, and leaves a lava pool.'},
+  {k:'RMB',n:'Fissure Vent',t:'ground',pow:'34 ×3',cd:6,d:'Crack a vent open at the cursor. After a beat it erupts three times, launching and burning anything standing on it.'},
+  {k:'E',n:'Caldera',t:'fire',pow:90,cd:0,d:'Ring a wide area at the cursor with a wall of fire, then the center erupts in a huge blast 1.2s later.'}]},
+{id:'dreadwhale',n:'Dreadwhale',types:['water','steel'],sz:1.25,stats:{hp:106,dmg:82,pdef:110,mdef:94,int:62,spe:54},cls:'mag',xp:150,draw:drawDreadwhale,states:['norm'],ammo:{max:4,rl:1.6,unit:'charges',verb:'LOADING CHARGES',d:'4 depth charges, then reloads for 1.6s.'},
+ role:'Dreadnought',blurb:'Bulwhale, refitted for war. It traded the turret for a riveted steel hull, a deck cannon, and a habit of ramming first and asking never.',
+ moves:[
+  {k:'LMB',n:'Depth Charge',t:'water',pow:34,cd:.5,d:'Toss a mine to the cursor. It arms on landing and blasts the first foe that comes near (or pops after 6s). Up to 4 out at once.'},
+  {k:'RMB',n:'Ram Tide',t:'steel',pow:50,cd:5,d:'Surge forward on a wave, smashing and stunning the first foe you hit and leaving a slowing wake behind you.'},
+  {k:'E',n:'Broadside',t:'water',pow:'20 ×15',cd:0,d:'Brace and fire three thundering volleys from the deck cannon: wide fans of shells toward the cursor.'}]},
+{id:'verdryad',n:'Verdryad',types:['grass','fairy'],sz:1.2,stats:{hp:90,dmg:100,pdef:72,mdef:106,int:98,spe:74},cls:'mag',xp:150,draw:drawVerdryad,states:['norm'],ammo:{max:8,rl:1.3,unit:'lashes',verb:'REGROWING VINES',d:'8 lashes, then regrows its vines for 1.3s.'},
+ role:'Warden',blurb:'Verdivy in full bloom. It stopped planting turrets and started commanding the forest itself: living whips, roots that grab your ankles, and a flower that heals whoever stands beneath it.',
+ moves:[
+  {k:'LMB',n:'Thorn Lash',t:'grass',pow:'28 / 38',cd:.38,d:'Crack a long vine whip ahead of you. It hits everything along the lash, and the tip hits harder.'},
+  {k:'RMB',n:'Root Snare',t:'grass',pow:34,cd:5,d:'Send roots racing along the ground. The first foe they reach is rooted in place (nearly frozen) for 1.4s.'},
+  {k:'E',n:'Elder Bloom',t:'fairy',pow:'22 / pulse',cd:0,d:'Grow a giant flower where you stand for 6s. Inside its petals you heal 3% HP a second, and foes are slowed and stung by fairy pulses.'}]});
+for(const m of MONS.slice(-3))MON[m.id]=m;
+MON.cindercub.evo={lv:14,to:'calderursa'};MON.bulwhale.evo={lv:14,to:'dreadwhale'};MON.verdivy.evo={lv:14,to:'verdryad'};
+Object.assign(ANIM,{calderursa:{k:'flicker',fps:5},dreadwhale:{k:'breathe',fps:2.5},verdryad:{k:'sway',fps:2.5}});
+const FIRE2={},RING2={};
+/* ---------- CALDERURSA ---------- */
+function lavaLob(f,x,y){const sx=f.x+Math.cos(f.aim)*8,sy=f.y-18,d=Math.hypot(x-sx,y-sy),T=.3+d/520;ring(x,y,18,'#f47a18',T,'tele',{own:f});ring(sx,sy,0,'#f47a18',T,'llob',{sx,sy,ex:x,ey:y,h:20+d*.28});
+  later(f,T,()=>{ring(x,y,20,'#f47a18',.3,'nova');fx(x,y-2,'#f8c040',14,100,.4,2,20);for(const t of foes(f))if(Math.hypot(t.x-x,t.y-y)<=18+t.r)hit(f,t,22,'fire',{kb:60,ka:Math.atan2(t.y-y,t.x-x),st:{burn:2}});
+    for(const p of G.pods)if(p.owner!==f&&Math.hypot(p.x-x,p.y-y)<24)hurtPod(p,24*f.unit.dmg/f.unit.mdef*LF(f.unit.lv)*1.2);if(!solidWalk(x,y))G.fires.push({x,y,r:12,life:2.5,owner:f,seed:Math.random()*6});sfx('splash')})}
+RING2.llob=r=>{const k=1-r.life/r.max,q=Math.min(1,k),x=r.sx+(r.ex-r.sx)*q,gy=r.sy+(r.ey-r.sy)*q,y=gy-Math.sin(PI*q)*r.h;ctx.globalAlpha=.3;pell(x,gy+2,3,1,'#000');ctx.globalAlpha=1;
+  pcirc(x,y,3.8,'#5a1000');pcirc(x,y,3,'#d03a10');pcirc(x-.5,y-.5,1.8,'#f8a030');ctx.fillStyle='#fff6c0';ctx.fillRect(Math.round(x)-1,Math.round(y)-1,1,1);G.parts.push({x,y,vx:0,vy:-10,life:.25,max:.25,col:Math.random()<.5?'#f47a18':'#f8c040',sz:1})};
+KIT.calderursa={
+  act(f,c){const u=f.unit;
+    if(c.r&&u.cd[1]<=0){u.cd[1]=6*cdM(u);const p=reach(f,c.tx,c.ty,170);f.slamT=.3;ring(p.x,p.y,30,'#f47a18',.55,'tele',{own:f});fx(p.x,p.y,'#443c48',10,60,.4,2);sfx('charge');
+      for(let i=0;i<3;i++)later(f,.55+i*.4,()=>{nova(f,p.x,p.y-2,{r:30,pow:34,type:'ground',kb:180,st:{burn:2}});fx(p.x,p.y-6,'#f8c040',18,150,.5,2,60);fx(p.x,p.y,'#2a2430',8,80,.4,2,30);if(!solidWalk(p.x,p.y))G.fires.push({x:p.x,y:p.y,r:14,life:1.2,owner:f,seed:Math.random()*6});G.shake=Math.max(G.shake,3)})}
+    if(c.l&&u.cd[0]<=0&&u.rl<=0){if(u.ammo<=0)startReload(f);else{u.ammo--;u.cd[0]=.6;f.slamT=Math.max(f.slamT||0,.15);let p=reach(f,c.tx,c.ty,220);if(Math.hypot(p.x-f.x,p.y-f.y)<40)p={x:f.x+Math.cos(c.aim)*40,y:f.y+Math.sin(c.aim)*40};lavaLob(f,p.x,p.y);sfx('boom');if(u.ammo<=0)startReload(f)}}
+    if(c.e&&u.ult>=100){u.ult=0;ult(f);const p=reach(f,c.tx,c.ty,210),R=72;f.root=.5;f.slamT=.6;ring(p.x,p.y,R,'#f83838',1.2,'tele',{own:f});
+      for(let i=0;i<16;i++){const a=i/16*6.283,x=p.x+Math.cos(a)*R,y=p.y+Math.sin(a)*R*.95;if(!solidWalk(x,y))G.fires.push({x,y,r:11,life:3.6,owner:f,seed:Math.random()*6})}
+      later(f,1.2,()=>{nova(f,p.x,p.y,{r:R,pow:90,type:'fire',kb:260,st:{burn:3}});fx(p.x,p.y-10,'#f8c040',40,260,.7,2,80);fx(p.x,p.y,'#2a2430',20,160,.6,2,40);G.shake=Math.max(G.shake,9);G.flash=Math.max(G.flash,.15)});sfx('charge')}},
+  move(f){return 1}};
+AIK.calderursa=function(f,t,c,d,sight,dt){const ai=f.ai,u=f.unit,D=ai.d;
+  if(u.ult>=100&&d<220&&Math.random()<dt*D.agg*2)c.e=1;
+  else if(u.cd[1]<=0&&d<180&&Math.random()<dt*D.agg*3)c.r=1;
+  if(d<230&&d>30&&u.cd[0]<=0&&ai.react<=0){c.l=1;ai.react=D.react*.5}
+  return{pref:160,aimTarget:1}};
+/* ---------- DREADWHALE ---------- */
+function mineBoom(f,m,big){m.done=1;nova(f,m.x,m.y,{r:big?32:22,pow:big?34:16,type:'water',kb:big?180:80});fx(m.x,m.y-4,'#e2f8ff',16,140,.4,2,40);fx(m.x,m.y,'#525a70',8,90,.3,2);G.shake=Math.max(G.shake,big?4:2)}
+function mineTick(f){const M=f.mines;if(!M||!M.length)return;
+  for(const m of M){if(m.fly){const dx=m.tx-m.x,dy=m.ty-m.y,d=Math.hypot(dx,dy),st=260*G.dt;if(d<=st||solidShot(m.x+dx/d*st,m.y+dy/d*st+4)){m.fly=0;m.arm=.25;fx(m.x,m.y,'#9ad0fc',6,50,.25);sfx('plant')}else{m.x+=dx/d*st;m.y+=dy/d*st}continue}
+    m.arm-=G.dt;m.life-=G.dt;if(m.life<=0){mineBoom(f,m,0);continue}if(m.arm>0)continue;
+    for(const t of foes(f))if(Math.hypot(t.x-m.x,t.y-m.y)<t.r+14){mineBoom(f,m,1);break}}
+  f.mines=M.filter(m=>!m.done)}
+FIRE2.wake={touch(fi,t){applySt(t,{slow:[.35,.4]})},draw(fi){const k=Math.min(1,fi.life*1.5);ctx.globalAlpha=.45*k;pell(fi.x,fi.y,fi.r,fi.r*.5,'#2a4f94');ctx.globalAlpha=.6*k;pell(fi.x,fi.y,fi.r*.7,fi.r*.32,'#58a0ec');ctx.globalAlpha=k;pring(fi.x,fi.y,fi.r*(.6+.4*((G.t*1.5+fi.seed)%1)),'#e2f8ff',3);ctx.globalAlpha=1}};
+KIT.dreadwhale={
+  act(f,c){const u=f.unit;
+    if(c.r&&u.cd[1]<=0){u.cd[1]=5*cdM(u);const a=c.ra??c.aim;dash(f,a,{dist:150,t:.32,pow:50,type:'steel',kb:280,st:{stun:.45},stop:1});ring(f.x,f.y,18,'#58a0ec',.3,'nova');
+      for(let i=0;i<6;i++)later(f,i*.055,()=>{if(!solidWalk(f.x,f.y))G.fires.push({x:f.x,y:f.y+2,r:13,life:2.5,owner:f,seed:Math.random()*6,fx2:'wake'});fx(f.x,f.y,'#e2f8ff',4,60,.25)});sfx('splash');return}
+    if(c.l&&u.cd[0]<=0&&u.rl<=0){if(u.ammo<=0)startReload(f);else{u.ammo--;u.cd[0]=.5;f.slamT=.15;const p=reach(f,c.tx,c.ty,130);(f.mines=f.mines||[]).push({x:f.x,y:f.y-2,tx:p.x,ty:p.y,fly:1,arm:.25,life:6});
+      if(f.mines.length>4){const o=f.mines.shift();fx(o.x,o.y,'#9ad0fc',6,40,.3)}sfx('dart');if(u.ammo<=0)startReload(f)}}
+    if(c.e&&u.ult>=100){u.ult=0;ult(f);f.root=1;f.slamT=1;for(let v=0;v<3;v++)later(f,.15+v*.32,()=>{for(let i=-2;i<=2;i++)shoot(f,f.aim+i*.17+(Math.random()-.5)*.05,{spd:310,pow:20,type:'water',r:4,life:.85,kind:'blob',kb:120});G.shake=Math.max(G.shake,4);fx(f.x+Math.cos(f.aim)*14,f.y-16+Math.sin(f.aim)*10,'#ffffff',10,120,.25);sfx('boom')})}},
+  move(f){mineTick(f);return 1}};
+AIK.dreadwhale=function(f,t,c,d,sight,dt){const ai=f.ai,u=f.unit,D=ai.d;
+  if(u.ult>=100&&sight&&d<230&&Math.random()<dt*D.agg*2)c.e=1;
+  else if(u.cd[1]<=0&&sight&&d>45&&d<160&&Math.random()<dt*D.agg*3)c.r=1;
+  if(d<150&&u.cd[0]<=0&&ai.react<=0){c.l=1;ai.react=D.react*.6}
+  return{pref:80,aimTarget:1}};
+/* ---------- VERDRYAD ---------- */
+const LASH_L=72;
+function thornLash(f,a){const ca=Math.cos(a),sa=Math.sin(a),x0=f.x,y0=f.y-6,x1=x0+ca*rayLen(x0,y0+6,a,LASH_L),y1=y0+sa*rayLen(x0,y0+6,a,LASH_L);f.lashT=.16;f.lashA=a;f.lashL=Math.hypot(x1-x0,y1-y0);
+  for(const t of foes(f)){if(segDist(t.x,t.y-6,x0,y0,x1,y1)>t.r+5)continue;const tip=Math.hypot(t.x-x0,t.y-6-y0)>f.lashL*.7;hit(f,t,tip?38:28,'grass',{kb:tip?140:60,ka:a,quiet:!tip});if(tip)fx(t.x,t.y-8,'#a8e070',8,90,.3)}
+  for(const p of G.pods)if(p.owner!==f&&segDist(p.x,p.y-6,x0,y0,x1,y1)<8)hurtPod(p,24*f.unit.dmg/f.unit.mdef*LF(f.unit.lv)*1.2);sfx('swing')}
+FIRE2.bloom={touch(fi,t){applySt(t,{slow:[.25,.3]});if((t.bloomCd||0)<=G.t){t.bloomCd=G.t+.7;hit(fi.owner,t,22,'fairy',{quiet:1,atk:fi.atk,lv:fi.lv,cls:'mag',stabTypes:['grass','fairy']});fx(t.x,t.y-8,'#ffa8cc',6,60,.3)}},
+  draw(fi){const k=Math.min(1,fi.life*1.5,(6-fi.life)*4+.2),r=fi.r,sp=G.t*.3+fi.seed;ctx.globalAlpha=.3*k;pell(fi.x,fi.y,r,r*.55,'#62b84a');
+    for(let i=0;i<8;i++){const a=sp+i*.785,x=fi.x+Math.cos(a)*r*.6,y=fi.y+Math.sin(a)*r*.33;ctx.globalAlpha=.6*k;pell(x,y,r*.32,r*.15,i%2?'#ee5c98':'#ffa8cc')}
+    ctx.globalAlpha=k;pell(fi.x,fi.y,r*.2,r*.11,'#ecc030');pell(fi.x,fi.y-1,r*.1,r*.06,'#fff8c0');ctx.globalAlpha=.5*k;pring(fi.x,fi.y,r*(.3+.7*((G.t*.9)%1)),'#ffa8cc',3);ctx.globalAlpha=k*.8;pring(fi.x,fi.y,r,'#a8e070',2.5);ctx.globalAlpha=1}};
+KIT.verdryad={
+  act(f,c){const u=f.unit;
+    if(c.r&&u.cd[1]<=0){u.cd[1]=5*cdM(u);shoot(f,c.aim,{spd:250,pow:34,type:'grass',r:4,life:.8,kind:'root',kb:0,st:{slow:[1.4,.88]}});const p=G.proj[G.proj.length-1];p.y=f.y-2;p.onHit=()=>{for(const t of foes(f))if(p.hit.has(t.unit)){popup(t.x,t.y-34,'ROOTED!','#a8e070',true);fx(t.x,t.y,'#6e4222',10,60,.4)}};sfx('plant')}
+    if(c.l&&u.cd[0]<=0&&u.rl<=0){if(u.ammo<=0)startReload(f);else{u.ammo--;u.cd[0]=.38;thornLash(f,c.aim);if(u.ammo<=0)startReload(f)}}
+    if(c.e&&u.ult>=100){u.ult=0;ult(f);G.fires.push({x:f.x,y:f.y,r:64,life:6,owner:f,seed:Math.random()*6,fx2:'bloom',atk:u.dmg,lv:u.lv});ring(f.x,f.y,64,'#ffa8cc',.5,'nova');fx(f.x,f.y-10,'#ffa8cc',30,140,.6,2,30);sfx('plant')}},
+  move(f){const u=f.unit;for(const fi of G.fires)if(fi.fx2==='bloom'&&fi.owner===f&&Math.hypot(f.x-fi.x,f.y-fi.y)<fi.r&&u.hp<u.max){u.hp=Math.min(u.max,u.hp+u.max*.03*G.dt);if(Math.random()<.15)G.parts.push({x:f.x+(Math.random()-.5)*12,y:f.y-6-Math.random()*14,vx:0,vy:-20,life:.5,max:.5,col:'#70f8a8',sz:1})}return 1}};
+AIK.verdryad=function(f,t,c,d,sight,dt){const ai=f.ai,u=f.unit,D=ai.d;
+  if(u.ult>=100&&(d<90||u.hp<u.max*.5)&&Math.random()<dt*D.agg*3)c.e=1;
+  if(u.cd[1]<=0&&sight&&d<190&&d>30&&Math.random()<dt*D.agg*3)c.r=1;
+  else if(d<LASH_L-4&&sight&&u.cd[0]<=0&&ai.react<=0){c.l=1;ai.react=D.react*.4}
+  return{pref:52,aimTarget:1}};
+Object.assign(GEAR2,{
+  verdryad:(f,a,ca,sa)=>{if(f.lashT>0){const k=1-f.lashT/.16,L=(f.lashL||LASH_L)*Math.min(1,k*2),bend=(1-k)*.6,x0=f.x,y0=f.y-6;let pv=[x0,y0];for(let i=1;i<=10;i++){const q=i/10,aa=f.lashA+bend*Math.sin(q*PI),x=x0+Math.cos(aa)*L*q,y=y0+Math.sin(aa)*L*q;pline(pv[0],pv[1],x,y,i>8?1:2,i%3?'#2e6a28':'#62b84a');pv=[x,y]}ctx.fillStyle='#ffa8cc';ctx.fillRect(Math.round(pv[0]),Math.round(pv[1]),2,2)}},
+  dreadwhale:(f)=>{for(const m of f.mines||[]){const y=m.fly?m.y-6:m.y;pell(m.x,m.y+3,4,1.2,'rgba(0,0,0,.25)');pcirc(m.x,y,4,'#22283a');pcirc(m.x,y,3,'#525a70');pcirc(m.x-1,y-1,1.2,'#aab4cc');
+    if(!m.fly){const on=m.arm<=0&&Math.floor(G.t*(m.life<1.5?12:4))%2;ctx.fillStyle=on?'#f85838':'#7a2a2a';ctx.fillRect(Math.round(m.x),Math.round(y)-4,1,1)}for(const[dx,dy]of[[-4,0],[4,0],[0,-4]]){ctx.fillStyle='#7c86a2';ctx.fillRect(Math.round(m.x+dx),Math.round(y+dy),1,1)}}}});
+Object.assign(SPECIAL2,{
+  calderursa:f=>[f.unit.cd[1]>0?'VENT '+f.unit.cd[1].toFixed(1)+'s':'VENT READY',1-f.unit.cd[1]/6],
+  dreadwhale:f=>['MINES '+(f.mines||[]).length+'/4 · '+(f.unit.cd[1]>0?'RAM '+f.unit.cd[1].toFixed(1)+'s':'RAM READY'),1-f.unit.cd[1]/5],
+  verdryad:f=>{const bl=G.fires.find(q=>q.fx2==='bloom'&&q.owner===f);return[bl?'BLOOM '+bl.life.toFixed(1)+'s':f.unit.cd[1]>0?'SNARE '+f.unit.cd[1].toFixed(1)+'s':'SNARE READY',bl?bl.life/6:1-f.unit.cd[1]/5]}});
+{const _d2=drawProj2;drawProj2=function(p){if(p.kind==='root'){const x=Math.round(p.x),y=Math.round(p.y);for(let i=0;i<5;i++){const t=p.t*40+i;ctx.fillStyle=i%2?'#6e4222':'#2e6a28';ctx.fillRect(Math.round(p.x-p.vx*i*.012+Math.sin(t)*2),Math.round(p.y-p.vy*i*.012+Math.cos(t)*1.5),2,2)}ctx.fillStyle='#a8e070';ctx.fillRect(x,y-1,2,2);if(Math.random()<.5)G.parts.push({x:p.x,y:p.y+2,vx:0,vy:-6,life:.3,max:.3,col:'#8a6234',sz:1});return true}return _d2(p)}}
+/* ---------- evolution: dialog scene after trainer battles, live transform mid-route ---------- */
+async function evolveScene(c){const E=MON[c.id]&&MON[c.id].evo;if(!E||c.lv<E.lv)return;const om=MON[c.id],nm=MON[E.to];
+  sfx('charge');await say('What? '+om.n.toUpperCase()+' is evolving!');sfx('ult');
+  c.id=E.to;c.hp=null;showLvl(nm,c.lv,calcStats(om,c.lv),calcStats(nm,c.lv));
+  await say('Congratulations! Your '+om.n.toUpperCase()+' evolved into '+nm.n.toUpperCase()+'!');
+  await say(nm.n.toUpperCase()+' learned '+nm.moves.map(m=>m.n.toUpperCase()).join(', ')+'!');hideLvl();if(typeof saveGame==='function')saveGame()}
+function evolveLive(P,u,c){const E=MON[c.id]&&MON[c.id].evo;if(!E||c.lv<E.lv)return;const om=u.m,nm=MON[E.to],k=u.hp/u.max;
+  c.id=E.to;Object.assign(u,{m:nm,id:E.to},calcStats(nm,c.lv));u.hp=Math.round(u.max*Math.max(k,.6));u.ammo=nm.ammo.max;u.rl=0;u.cd=[0,0];resetTransient(P);P.invuln=Math.max(P.invuln,1.2);
+  G.banner={txt:'EVOLVED!',who:nm.n,col:TC[nm.types[0]],t:2,side:0};G.flash=Math.max(G.flash,.3);ring(P.x,P.y-10,34,'#ffffff',.6,'nova');fx(P.x,P.y-12,'#ffffff',40,160,.7,2,40);fx(P.x,P.y-12,TC[nm.types[0]],24,120,.6,2,30);sfx('ult');
+  if(typeof toast==='function')toast(om.n.toUpperCase()+' evolved into '+nm.n.toUpperCase()+'!');HUD.side[0].last=null;buildHud&&buildHud()}

@@ -223,7 +223,7 @@ function hit(src,tgt,pow,type,o={}){
   return d}
 function hurtPod(p,d){p.hp-=d;p.hurt=.1;fx(p.x,p.y-6,'#ee5c98',4,50,.3);if(p.hp<=0)p.dead=1}
 function faint(t,src){if(G.route&&(t.wild||t.rtrainer)&&src&&src.side===0)routeXP(t);if(G.kos&&t.side===1&&t.unit.hp>-1e6)G.kos.push({id:t.unit.id,lv:t.unit.lv,used:[...G.f[0].used]});t.unit.hp=0;t.faintT=1.3;t.dash=null;t.channel=0;t.root=0;src.kos++;popup(t.x,t.y-38,t.unit.m.n.toUpperCase()+' FAINTED!','#f85858',true);fx(t.x,t.y-8,'#ffffff',24,90,.7);G.shake=6;G.hitstop=.12;sfx('ko');endModes(t)}
-function endModes(f){f.nodes=null;f.coilFly=null;f.finHit=null;f.mirror=null;f.decoys=null;f.kalT=0;f.burT=0;f.immT=0;f.link=null;f.mom=0;f.veilT=0;f.frenzyT=0;f.rushT=0;f.mode='norm';f.absorbed=0;f.stream=null;f.homerT=0;G.balls=G.balls.filter(b=>b.owner!==f)}
+function endModes(f){f.mines=null;f.lashT=0;f.nodes=null;f.coilFly=null;f.finHit=null;f.mirror=null;f.decoys=null;f.kalT=0;f.burT=0;f.immT=0;f.link=null;f.mom=0;f.veilT=0;f.frenzyT=0;f.rushT=0;f.mode='norm';f.absorbed=0;f.stream=null;f.homerT=0;G.balls=G.balls.filter(b=>b.owner!==f)}
 function resetTransient(f){f.st={slowT:0,slowA:0,stun:0,stunImm:0,burn:0};f.chargeT=0;f.charging=0;f.channel=0;f.root=0;f.dash=null;f.kvx=f.kvy=0;f.seeds=0;endModes(f)}
 function matchScore(u,v){let off=0,def=0;for(const mv of u.m.moves)off=Math.max(off,eff(mv.t,v.m.types)*(u.m.types.includes(mv.t)?1.2:1));for(const mv of v.m.moves)def=Math.max(def,eff(mv.t,u.m.types)*(v.m.types.includes(mv.t)?1.2:1));return off-def+u.hp/u.max*.6}
 function bringIn(f,i){f.idx=i;f.used.add(i);f.unit=f.team[i];resetTransient(f);f.invuln=1;ring(f.x,f.y-6,16,TC[f.unit.m.types[0]],.35,'nova');fx(f.x,f.y-8,'#ffffff',14,60,.4);sfx('swap')}
@@ -550,7 +550,7 @@ const AIK={
 /* ================= UPDATE ================= */
 function updFighter(f,dt){
   for(const u of f.team){u.cd[0]=Math.max(0,u.cd[0]-dt);u.cd[1]=Math.max(0,u.cd[1]-dt)}
-  for(const k of['invuln','hurt','swapCd','channel','root','effCd','punchT','swingT','homerT','noSeedCd','dropCd','snapT','frenzyT','windT','spinT','clawT','slamT','stagger','rushT','cleaveT','cleaveW','goreT','faultW','spitT','rainW','quillT','hookT','veilT','toxCd','glimpseT','dashCd'])f[k]=Math.max(0,(f[k]||0)-dt);
+  for(const k of['invuln','hurt','swapCd','channel','root','effCd','punchT','swingT','homerT','noSeedCd','dropCd','snapT','frenzyT','windT','spinT','clawT','slamT','stagger','rushT','cleaveT','cleaveW','goreT','faultW','lashT','spitT','rainW','quillT','hookT','veilT','toxCd','glimpseT','dashCd'])f[k]=Math.max(0,(f[k]||0)-dt);
   if(f.mode==='rush'&&f.rushT<=0)f.mode='norm';
   if(f.mode==='veil'&&f.veilT<=0)veilEnd(f);
   if(f.faintT>0){f.faintT-=dt;f.kvx=f.kvy=0;if(f.faintT<=0)nextUnit(f);return}
@@ -630,7 +630,7 @@ function update(dt){
     for(const q of G.pods)if(b.live&&q.owner!==f&&Math.hypot(b.x-q.x,b.y-(q.y-6))<br+6){hurtPod(q,ballPow(b)*LF(f.unit.lv));shatter(b)}
   }G.balls=G.balls.filter(b=>!b.dead);
   // burning ground
-  for(const fi of G.fires){fi.life-=dt;for(const t of foes(fi.owner))if(Math.hypot(t.x-fi.x,t.y-fi.y)<fi.r+t.r&&!t.unit.m.types.includes('flying')){if(fi.pit){pitTouch(fi,t);continue}if(t.mode==='burrow')continue;if(fi.tox){toxTouch(fi,t);continue}applySt(t,{burn:1.5});t.lastHit=fi.owner}}G.fires=G.fires.filter(fi=>fi.life>0);
+  for(const fi of G.fires){fi.life-=dt;for(const t of foes(fi.owner))if(Math.hypot(t.x-fi.x,t.y-fi.y)<fi.r+t.r&&!t.unit.m.types.includes('flying')){if(fi.fx2){FIRE2[fi.fx2].touch(fi,t);continue}if(fi.pit){pitTouch(fi,t);continue}if(t.mode==='burrow')continue;if(fi.tox){toxTouch(fi,t);continue}applySt(t,{burn:1.5});t.lastHit=fi.owner}}G.fires=G.fires.filter(fi=>fi.life>0);
   // pods
   for(const p of G.pods){p.life-=dt;p.cd-=dt;p.open=Math.max(0,p.open-dt);p.hurt=Math.max(0,p.hurt-dt);p.grow=Math.min(1,p.grow+dt*5);if(p.life<=0)p.dead=1;if(p.dead){fx(p.x,p.y-6,'#62b84a',10,50,.4);continue}
     let t=null;{let bd=150;for(const o of foes(p.owner)){const d=Math.hypot(o.x-p.x,o.y-p.y);if(d<bd&&los({x:p.x,y:p.y-6},o)){bd=d;t=o}}}if(p.cd<=0&&t){p.cd=.8;p.open=.2;const a=Math.atan2(t.y-6-(p.y-8),t.x-p.x);
@@ -827,9 +827,10 @@ function drawRing(r){const k=1-r.life/r.max;ctx.globalAlpha=1-k;
   else if(r.kind==='lob'){const q=Math.min(1,k),x=r.sx+(r.ex-r.sx)*q,gy=r.sy+(r.ey-r.sy)*q,z=Math.sin(PI*q)*r.h*(r.sy===r.ey?0:1)+(r.sy===r.ey?(1-q)*r.h:0),y=gy-z;ctx.globalAlpha=.3;pell(x,gy+2,3,1,'#000');ctx.globalAlpha=1;
     pcirc(x,y,3.6,'#2e0e42');pcirc(x,y,2.8,'#9c4cb0');pcirc(x-.5,y-.5,1.6,'#cc88dc');ctx.fillStyle='#d8ff70';ctx.fillRect(Math.round(x)+1,Math.round(y)+1,1,1);ctx.fillStyle='#ffffff';ctx.fillRect(Math.round(x)-1,Math.round(y)-1,1,1);if(Math.random()<.6)G.parts.push({x:x+(Math.random()-.5)*3,y:y+(Math.random()-.5)*3,vx:0,vy:10,life:.25,max:.25,col:Math.random()<.5?'#a058b8':'#d8ff70',sz:1})}
   else if(r.kind==='arc'){ctx.fillStyle=r.col;for(let i=0;i<=10;i++){const a=r.a-r.arc/2+r.arc*i/10;for(const rr of[r.r*.7,r.r]){ctx.fillRect(Math.round(r.x+Math.cos(a)*rr),Math.round(r.y+Math.sin(a)*rr),1,1)}}}
+  else if(RING2[r.kind])RING2[r.kind](r);
   else pring(r.x,r.y,r.r*(1+k*.4),r.col,1.4);
   ctx.globalAlpha=1}
-function drawFire(fi){if(fi.pit){drawPit(fi);return}if(fi.tox){drawTox(fi);return}const k=Math.min(1,fi.life*1.5);ctx.globalAlpha=.3*k;pell(fi.x,fi.y,fi.r,fi.r*.55,'#5a1000');ctx.globalAlpha=k;
+function drawFire(fi){if(fi.fx2){FIRE2[fi.fx2].draw(fi);return}if(fi.pit){drawPit(fi);return}if(fi.tox){drawTox(fi);return}const k=Math.min(1,fi.life*1.5);ctx.globalAlpha=.3*k;pell(fi.x,fi.y,fi.r,fi.r*.55,'#5a1000');ctx.globalAlpha=k;
   for(let i=0;i<7;i++){const a=i*2.4+fi.seed,rr=(i%3+1)/3*fi.r*.8,x=Math.round(fi.x+Math.cos(a)*rr),y=Math.round(fi.y+Math.sin(a)*rr*.55),h=3+((G.t*12+i*5)|0)%4;
     ctx.fillStyle='#d03a10';ctx.fillRect(x-1,y-h,3,h);ctx.fillStyle='#f8a030';ctx.fillRect(x,y-h+1,1,h-1);ctx.fillStyle='#fff6c0';ctx.fillRect(x,y-1,1,1)}ctx.globalAlpha=1}
 function render(){

@@ -228,10 +228,14 @@ async function profTalk(){if(!OW.flags.starter)await say("LARCH: Go on! Walk up 
 async function rivalTalk(){if(!OW.flags.starter)await say(OW.rival+": Go on, pick. I already know which one I want. Well, which TWO I want.");else await say(OW.rival+": Don't get attached to winning.")}
 
 /* ---------- leveling ---------- */
+// encounters track the player's real progress: wilds never above your best mon, trainers +1, gym/boss +2
+function partyRef(){return Math.max(1,...((OW&&OW.party)||[]).map(c=>c.lv||1))}
+function encLv(lv,k){return Math.max(2,Math.min(lv,partyRef()+(k==='w'?0:k==='t'?1:2)))}
 function xpYield(id,lv,trainer){return Math.floor(MON[id].xp*lv/5*(trainer?1.5:1))}
 async function grantXP(kos,trainer){for(const k of kos){const parts=k.used.filter(i=>OW.party[i]);if(!parts.length)continue;const share=Math.max(1,Math.floor(xpYield(k.id,k.lv,trainer)/parts.length));
   for(const i of parts){const c=OW.party[i],m=MON[c.id];c.xp+=share;await say(m.n.toUpperCase()+" gained "+share+" EXP. Points!");
-    while(c.lv<100&&c.xp>=XPN(c.lv+1)){const before=calcStats(m,c.lv);c.lv++;const after=calcStats(m,c.lv);sfx('go');showLvl(m,c.lv,before,after);await say(m.n.toUpperCase()+" grew to Lv. "+c.lv+"!");hideLvl()}}}}
+    while(c.lv<100&&c.xp>=XPN(c.lv+1)){const before=calcStats(m,c.lv);c.lv++;const after=calcStats(m,c.lv);sfx('go');showLvl(m,c.lv,before,after);await say(m.n.toUpperCase()+" grew to Lv. "+c.lv+"!");hideLvl()}
+    await evolveScene(c)}}}
 function showLvl(m,lv,a,b){const rows=[['HP','max'],[m.cls==='mag'?'MAGIC':'ATTACK','dmg'],['PHYS DEF','pdef'],['MAGIC DEF','mdef'],['INTELLECT','int'],['SPEED','spe']];
   UI.lvl.innerHTML=`<b><span>${m.n.toUpperCase()}</span><i>LV ${lv}!</i></b>`+rows.map(([l,k])=>`<div><span>${l}</span><span>${b[k]}</span><em>+${b[k]-a[k]}</em></div>`).join('');UI.lvl.hidden=false}
 function hideLvl(){UI.lvl.hidden=true}
@@ -245,7 +249,7 @@ function trainerBattle(o){return new Promise(async res=>{const m=OW.map,p=OW.p;
   MW=w;MH=h;WW=w*16;WH=h*16;MINI=null;
   MAP={ground:sub('ground'),obj:sub('obj'),walk:sub('walk'),shot:sub('shot')};softTrees(MAP);
   WORLD=m.cvs.map(cv=>{const c=mkCanvas(WW,WH),x=c.getContext('2d');x.drawImage(cv,-x0*16,-y0*16);if(m.habitats)for(const hb of m.habitats)drawHabitatLive(x,hb,(hb.x-x0)*16,(hb.y-y0)*16,0);return c});
-  sel.diff=o.diff;newGame(OW.party.map(c=>({id:c.id,lv:c.lv,hp:c.hp,ht:c.ht})),o.enemy.slice(),o.diff);
+  sel.diff=o.diff;newGame(OW.party.map(c=>({id:c.id,lv:c.lv,hp:c.hp,ht:c.ht})),o.enemy.map(e=>Object.assign({},e,{lv:encLv(e.lv,o.gym?'b':'t')})),o.diff);
   const P=G.f[0],Q=G.f[1];P.x=p.px-x0*16;P.y=p.py-y0*16-2;Q.x=(o.npc.x-x0)*16+8;Q.y=(o.npc.y-y0)*16+12;P.aim=Math.atan2(Q.y-P.y,Q.x-P.x);Q.aim=P.aim+PI;
   G.kos=[];G.story={name:o.name,x0,y0,onEnd:async w=>{APP.mode='ow';$('hud').hidden=true;OW.last=performance.now();
     G.f[0].team.forEach((u,i)=>{if(OW.party[i])OW.party[i].hp=Math.max(1,Math.round(u.hp))});
@@ -422,7 +426,7 @@ function owMinimap(){const m=OW.map;if(!m||m.interior||OW.showMini===false||APP.
   ptext(m.name,x0+w/2,y0+h+8,'#ffffff',6)}
 
 /* ---------- full pause menu: team / summary / bag / card / options ---------- */
-const HT_BASE={bulwhale:1.8,fistinel:1.5,frostbunt:.6,verdivy:.9,snipant:.4,scrattle:.35,cindercub:.8,umbrynx:1.1,voltusk:1.4,mesmamba:2.1,phantern:.7,dunemaw:.5,ampoule:.6,prismoth:.45,hexwyrmp:3.4};
+const HT_BASE={bulwhale:1.8,fistinel:1.5,frostbunt:.6,verdivy:.9,snipant:.4,scrattle:.35,cindercub:.8,umbrynx:1.1,voltusk:1.4,mesmamba:2.1,phantern:.7,dunemaw:.5,ampoule:.6,prismoth:.45,hexwyrmp:3.4,calderursa:1.7,dreadwhale:3.4,verdryad:1.4};
 const ITEMS={potion:{n:'POTION',price:100,col:'#c860d8',d:'Restores 60 HP to one creature. Can\'t revive a fainted one.'},wood:{n:'CAMPFIRE WOOD',price:250,col:'#a86838',d:'A bundle of dry wood. Light a fire pit on a route (press E) to fully heal your whole team. One use.'},tether:{n:'TETHER',price:150,col:'#e8c060',d:'A warm seed-stone that bonds with weakened wild creatures. Throw it with Q in the field.'}};
 function curHp(i){if(APP.mode==='route'&&G&&G.f[0]&&G.f[0].team[i])return Math.max(0,Math.round(G.f[0].team[i].hp));const c=OW.party[i];return c.hp==null?calcStats(MON[c.id],c.lv).max:c.hp}
 function htTxt(c){return((HT_BASE[c.id]||1)*(c.ht||1)).toFixed(2)+' m'}
@@ -701,26 +705,26 @@ function buildRoute2(){const W=72,H=140,m=mkMapData('route2',W,H,{name:'SALTWIND
   deco(m,-1,c=>{drawFillets(c,m.ground,'earth');drawFillets(c,m.ground,'water');drawTallEdges(c,m.ground);
     for(const[x,y]of[[30,104],[44,94],[27,80],[45,52],[33,30],[40,118]])drawPebbles(c,x*16+2,y*16+4);for(const[x,y,k]of[[36,106,1],[29,86,2],[42,42,0],[48,30,3],[32,124,1]])drawFlowerClump(c,x*16+2,y*16+5,k)},1);
   // trainers
-  rnpc(m,{id:'nils',look:'sailor',x:47,y:104,dir:'left',kind:'trainer',name:'SAILOR NILS',team:[{id:'bulwhale',lv:10}],diff:'normal',
+  rnpc(m,{id:'nils',look:'sailor',x:47,y:104,dir:'left',kind:'trainer',name:'SAILOR NILS',team:[{id:'bulwhale',lv:9}],diff:'normal',
     intro:["SAILOR NILS: Ahoy! You've got that trail-dust look. My Bulwhale's been itching for a splash fight!"],win:"SAILOR NILS: Sunk! Ha, fair and square. The tide favors the bold, I suppose.",after:"SAILOR NILS: Past the shoals there's an island. Can't reach it without a swimmer, though."});
-  rnpc(m,{id:'june',look:'girl',x:31,y:94,dir:'right',kind:'trainer',name:'PICNICKER JUNE',team:[{id:'cindercub',lv:10},{id:'snipant',lv:9}],diff:'normal',
+  rnpc(m,{id:'june',look:'girl',x:31,y:94,dir:'right',kind:'trainer',name:'PICNICKER JUNE',team:[{id:'cindercub',lv:9},{id:'snipant',lv:8}],diff:'normal',
     intro:["PICNICKER JUNE: You stepped on my picnic blanket! ...Okay, there's no blanket. But battle me anyway!"],win:"PICNICKER JUNE: Aww. Cindercub burned the sandwiches again, too.",after:"PICNICKER JUNE: The ash clearing here used to be a meadow. Cindercubs nest in it now."});
-  rnpc(m,{id:'brakka',look:'hiker',x:41,y:79,dir:'down',kind:'trainer',name:'HIKER BRAKKA',team:[{id:'voltusk',lv:11}],diff:'normal',
+  rnpc(m,{id:'brakka',look:'hiker',x:41,y:79,dir:'down',kind:'trainer',name:'HIKER BRAKKA',team:[{id:'voltusk',lv:10}],diff:'normal',
     intro:["HIKER BRAKKA: Ho there! This bluff's a Voltusk's playground. Mine rolled here through four fences and a hay cart!"],win:"HIKER BRAKKA: Note to self: walls are not brakes.",after:"HIKER BRAKKA: Saw folks in purple heading up to the lighthouse. Didn't look like sightseers."});
-  rnpc(m,{id:'grunt1',look:'coil',x:37,y:53,dir:'down',kind:'trainer',evil:1,name:'COIL GRUNT',team:[{id:'mesmamba',lv:11}],diff:'normal',
+  rnpc(m,{id:'grunt1',look:'coil',x:37,y:53,dir:'down',kind:'trainer',evil:1,name:'COIL GRUNT',team:[{id:'mesmamba',lv:10}],diff:'normal',
     intro:["COIL GRUNT: Hsss... Turn around, kid. This coast is closed for... maintenance.","COIL GRUNT: No? Fine. Mesmamba, give them a long, long stare."],win:"COIL GRUNT: Tch! The Admin's going to coil me up for this...",after:"COIL GRUNT: You'll never get into the lighthouse. Not while the Coil holds it."});
-  rnpc(m,{id:'isolde',look:'sister',x:30,y:39,dir:'right',kind:'trainer',name:'MYSTIC ISOLDE',team:[{id:'phantern',lv:11},{id:'verdivy',lv:10}],diff:'normal',
+  rnpc(m,{id:'isolde',look:'sister',x:30,y:39,dir:'right',kind:'trainer',name:'MYSTIC ISOLDE',team:[{id:'phantern',lv:10},{id:'verdivy',lv:9}],diff:'normal',
     intro:["MYSTIC ISOLDE: The fog spoke your name. ...Mostly. It said \"someone in a hat\". Close enough. Let us battle."],win:"MYSTIC ISOLDE: The fog did not foresee that. Awkward, given that foreseeing is its whole job.",after:"MYSTIC ISOLDE: Something is wrong with the lighthouse lamp. It shines the colour of a bruise."});
-  rnpc(m,{id:'grunt2',look:'coil',x:45,y:27,dir:'left',kind:'trainer',evil:1,name:'COIL GRUNT',team:[{id:'mesmamba',lv:12},{id:'scrattle',lv:11}],diff:'normal',
+  rnpc(m,{id:'grunt2',look:'coil',x:45,y:27,dir:'left',kind:'trainer',evil:1,name:'COIL GRUNT',team:[{id:'mesmamba',lv:11},{id:'scrattle',lv:10}],diff:'normal',
     intro:["COIL GRUNT: Another meddler? The Admin said nobody gets near the cape.","COIL GRUNT: Hsss! Coil up, Mesmamba!"],win:"COIL GRUNT: Ugh, fine. Go in. See if we care. The Admin will deal with you.",after:"COIL GRUNT: That old trialmaster stuck his nose in too. Look where it got him."});
   rnpc(m,{id:'lhmaren',look:'maren',x:40,y:13,dir:'down',kind:'talk',show:()=>OW.flags.quest&&!OW.flags.lhDone,talk:marenLighthouse});
-  m.zones=[{n:'dunes',x0:24,y0:118,x1:44,y1:136,w:{scrattle:5,snipant:4},max:2,lv:[8,10]},
-    {n:'shore',x0:44,y0:80,x1:54,y1:128,w:{phantern:5,snipant:2},max:2,lv:[9,11],g:[9,3]},
-    {n:'ash',x0:20,y0:88,x1:34,y1:102,w:{snipant:4,voltusk:2,scrattle:2},max:2,lv:[9,11]},
-    {n:'bluff',x0:32,y0:60,x1:48,y1:80,w:{voltusk:5,snipant:3},max:2,lv:[10,12]},
-    {n:'pine',x0:24,y0:36,x1:40,y1:58,w:{scrattle:4,snipant:3,phantern:1},max:2,lv:[10,12]},
-    {n:'cape',x0:38,y0:16,x1:52,y1:30,w:{phantern:6,voltusk:1},max:2,lv:[11,13]},
-    {n:'highland',x0:2,y0:38,x1:18,y1:118,w:{voltusk:3,phantern:3,scrattle:2},max:2,lv:[11,13],g:[3]}];
+  m.zones=[{n:'dunes',x0:24,y0:118,x1:44,y1:136,w:{scrattle:5,snipant:4},max:2,lv:[7,9]},
+    {n:'shore',x0:44,y0:80,x1:54,y1:128,w:{phantern:5,snipant:2},max:2,lv:[8,10],g:[9,3]},
+    {n:'ash',x0:20,y0:88,x1:34,y1:102,w:{snipant:4,voltusk:2,scrattle:2},max:2,lv:[8,10]},
+    {n:'bluff',x0:32,y0:60,x1:48,y1:80,w:{voltusk:5,snipant:3},max:2,lv:[9,11]},
+    {n:'pine',x0:24,y0:36,x1:40,y1:58,w:{scrattle:4,snipant:3,phantern:1},max:2,lv:[9,11]},
+    {n:'cape',x0:38,y0:16,x1:52,y1:30,w:{phantern:6,voltusk:1},max:2,lv:[10,12]},
+    {n:'highland',x0:2,y0:38,x1:18,y1:118,w:{voltusk:3,phantern:3,scrattle:2},max:2,lv:[10,12],g:[3]}];
   m.entries={south:{x:28.5*16,y:136*16},lh:{x:38*16+8,y:14*16}};
   m.exits={south:{map:'millhaven',x:37,y:13,dir:'left'}};
   return m}
@@ -733,18 +737,18 @@ function buildLighthouse(){const W=30,H=64,m=mkMapData('lighthouse',W,H,{name:'S
   for(const[x,y]of[[10,55],[19,55],[4,39],[25,39],[4,23],[25,23],[6,10],[25,10],[8,2],[21,2]])braz(x,y);
   for(const[x,y]of[[10,60],[19,60],[5,46],[24,46],[11,44],[18,44],[5,28],[24,28],[10,24],[19,26]]){prop(m,x,y,1,1,c=>((x+y)%2?drawBarrel(c,x*16,y*16):drawCrate(c,x*16,y*16)),1)}
   ritem(m,24,44,'potion',2);ritem(m,4,24,'tether',2);ritem(m,24,12,'potion',2);
-  rnpc(m,{id:'grunt3',look:'coil',x:7,y:42,dir:'right',kind:'trainer',evil:1,name:'COIL GRUNT',team:[{id:'mesmamba',lv:12}],diff:'normal',
+  rnpc(m,{id:'grunt3',look:'coil',x:7,y:42,dir:'right',kind:'trainer',evil:1,name:'COIL GRUNT',team:[{id:'mesmamba',lv:11}],diff:'normal',
     intro:["COIL GRUNT: An intruder! And... is that a lynx? Where did THAT come from?","COIL GRUNT: Doesn't matter. Hsss! Get them!"],win:"COIL GRUNT: That lynx bit my hat!",after:"COIL GRUNT: The lamp's almost charged. You're too late."});
-  rnpc(m,{id:'grunt4',look:'coil',x:22,y:26,dir:'left',kind:'trainer',evil:1,name:'COIL GRUNT',team:[{id:'mesmamba',lv:12},{id:'voltusk',lv:12}],diff:'normal',
+  rnpc(m,{id:'grunt4',look:'coil',x:22,y:26,dir:'left',kind:'trainer',evil:1,name:'COIL GRUNT',team:[{id:'mesmamba',lv:11},{id:'voltusk',lv:11}],diff:'normal',
     intro:["COIL GRUNT: The Admin's upstairs channelling the lamp. Nobody goes up. NOBODY."],win:"COIL GRUNT: ...Okay, somebody goes up.",after:"COIL GRUNT: Admin Vesk will flatten you. Just watch."});
-  rnpc(m,{id:'grunt5',look:'coil',x:14,y:12,dir:'down',kind:'trainer',evil:1,name:'COIL GRUNT',team:[{id:'phantern',lv:12},{id:'mesmamba',lv:13}],diff:'normal',
+  rnpc(m,{id:'grunt5',look:'coil',x:14,y:12,dir:'down',kind:'trainer',evil:1,name:'COIL GRUNT',team:[{id:'phantern',lv:11},{id:'mesmamba',lv:12}],diff:'normal',
     intro:["COIL GRUNT: Last line of defence! Hsss! The Coil endures!"],win:"COIL GRUNT: The Coil... endures... somewhere else.",after:"COIL GRUNT: Go on then. Vesk is waiting."});
-  rnpc(m,{id:'vesk',look:'coilboss',x:15,y:3,dir:'down',kind:'trainer',evil:1,boss:1,name:'ADMIN VESK',team:[{id:'mesmamba',lv:13},{id:'phantern',lv:13},{id:'voltusk',lv:12}],diff:'normal',
+  rnpc(m,{id:'vesk',look:'coilboss',x:15,y:3,dir:'down',kind:'trainer',evil:1,boss:1,name:'ADMIN VESK',team:[{id:'mesmamba',lv:12},{id:'phantern',lv:12},{id:'voltusk',lv:11}],diff:'normal',
     intro:["ADMIN VESK: So. The little tamer with the humming band. And a lynx I'd recognise anywhere.","ADMIN VESK: Tell Maren the Coil remembers her. Tell her yourself, actually, if you can still talk afterwards.","ADMIN VESK: This lamp will shine purple over every coast in the region, and every wild creature will hear the Coil's call. Hsss... Begin!"],
     win:"ADMIN VESK: Impossible. Hsss...",after:"",onWin:veskWon});
   rnpc(m,{id:'corvan',look:'corvan',x:19,y:3,dir:'left',kind:'talk',show:()=>!OW.flags.lhDone,talk:async()=>{await say("CORVAN: Mmph! (The trialmaster is bound in purple vines. He nods urgently toward the Admin.)")}});
-  m.zones=[{n:'hall',x0:9,y0:54,x1:20,y1:62,w:{phantern:4,scrattle:3},max:2,lv:[10,12],g:[6]},{n:'store',x0:3,y0:38,x1:26,y1:48,w:{phantern:4,scrattle:2,voltusk:1},max:2,lv:[11,12],g:[6]},
-    {n:'gallery',x0:3,y0:22,x1:26,y1:30,w:{phantern:5,voltusk:2},max:2,lv:[11,13],g:[6]},{n:'lamp',x0:5,y0:9,x1:26,y1:15,w:{phantern:3},max:1,lv:[12,13],g:[6]}];
+  m.zones=[{n:'hall',x0:9,y0:54,x1:20,y1:62,w:{phantern:4,scrattle:3},max:2,lv:[9,11],g:[6]},{n:'store',x0:3,y0:38,x1:26,y1:48,w:{phantern:4,scrattle:2,voltusk:1},max:2,lv:[10,11],g:[6]},
+    {n:'gallery',x0:3,y0:22,x1:26,y1:30,w:{phantern:5,voltusk:2},max:2,lv:[10,12],g:[6]},{n:'lamp',x0:5,y0:9,x1:26,y1:15,w:{phantern:3},max:1,lv:[11,12],g:[6]}];
   m.entries={south:{x:15*16,y:61*16}};m.exits={south:{route:'route2',entry:'lh'}};
   return m}
 async function marenLighthouse(){const R=G.route;G.paused=true;
@@ -864,16 +868,16 @@ function buildRoute3(){const W=128,H=128,m=mkMapData('route3',W,H,{name:'TALONRE
   // ---- 6) wild creatures: tall grass on each tier, tougher the higher you climb ----
   const POOLS=[{scrattle:3,snipant:3,voltusk:2,dunemaw:2},{snipant:3,phantern:3,scrattle:2,dunemaw:3,ampoule:1},{voltusk:3,mesmamba:3,phantern:2,ampoule:3},{mesmamba:4,voltusk:3,phantern:3,prismoth:2}];
   m.zones=[0,1,2,3].map(L=>{const tiles=[];for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(m.ground[y][x]===3&&E[y][x]===L&&C[y*W+x]===main)tiles.push([x,y]);
-    return{n:'r3_tier'+L,x0:0,y0:0,x1:W-1,y1:H-1,w:POOLS[L],max:L===0?3:2,lv:[14+L,15+L],g:[3],tiles}}).filter(z=>z.tiles.length);
+    return{n:'r3_tier'+L,x0:0,y0:0,x1:W-1,y1:H-1,w:POOLS[L],max:L===0?3:2,lv:[13+L,14+L],g:[3],tiles}}).filter(z=>z.tiles.length);
   // ---- 7) trainers: some on the trail, some guarding the stairs up to the high shelves ----
   const trail=[];for(let y=6;y<H-6;y++)for(let x=6;x<W-6;x++)if(m.ground[y][x]===1&&C[y*W+x]===main)trail.push([x,y]);
   const freeAt=(x,y)=>inb(x,y)&&!m.walk[y][x]&&m.ground[y][x]!==11&&!m.rnpcs.some(n=>Math.abs(n.x-x)+Math.abs(n.y-y)<12);
-  const TR=[['ranger','hiker','RANGER OSWIN',[{id:'voltusk',lv:16},{id:'snipant',lv:15}],"RANGER OSWIN: These wilds swallow the careless. Show me you can handle yourself!","RANGER OSWIN: Solid. You'll do fine out here.","RANGER OSWIN: The higher the shelf, the stronger the creatures. And the better the loot."],
-    ['ace','rival','ACE TAMER DAX',[{id:'umbrynx',lv:16},{id:'phantern',lv:16}],"ACE TAMER DAX: A ribbon, huh? Mine's coming. Right after I beat you.","ACE TAMER DAX: ...Okay, maybe not right after.","ACE TAMER DAX: Somebody stashed supplies on the summits. Haven't found them all yet."],
-    ['bird','sailor','BIRDKEEPER LIO',[{id:'phantern',lv:15},{id:'phantern',lv:16}],"BIRDKEEPER LIO: My terns ride the updrafts off these cliffs. Try and keep up!","BIRDKEEPER LIO: Grounded! Ha, well flown anyway.","BIRDKEEPER LIO: The west road is closed past the gate. Someday, though."],
-    ['mystic','maren','MYSTIC ELSPETH',[{id:'mesmamba',lv:17}],"MYSTIC ELSPETH: You climbed all this way to lose. The stairs whispered it.","MYSTIC ELSPETH: The stairs were wrong. It happens.","MYSTIC ELSPETH: Mesmamba nest in the grass up top. Mind its eyes."],
-    ['camper','girl','CAMPER PIA',[{id:'scrattle',lv:15},{id:'cindercub',lv:15},{id:'snipant',lv:15}],"CAMPER PIA: You're not getting past my campsite without a battle!","CAMPER PIA: Fine, fine. Marshmallow?","CAMPER PIA: Campfires up here are free to use if you've got wood."],
-    ['hiker','hiker','HIKER GRUM',[{id:'voltusk',lv:17},{id:'fistinel',lv:16}],"HIKER GRUM: Three tiers up and my legs are fine! Battle!","HIKER GRUM: My legs are fine. My pride, less so.","HIKER GRUM: The north gate's just a gate for now. Nothing past it but fog."]];
+  const TR=[['ranger','hiker','RANGER OSWIN',[{id:'voltusk',lv:15},{id:'snipant',lv:14}],"RANGER OSWIN: These wilds swallow the careless. Show me you can handle yourself!","RANGER OSWIN: Solid. You'll do fine out here.","RANGER OSWIN: The higher the shelf, the stronger the creatures. And the better the loot."],
+    ['ace','rival','ACE TAMER DAX',[{id:'umbrynx',lv:15},{id:'phantern',lv:15}],"ACE TAMER DAX: A ribbon, huh? Mine's coming. Right after I beat you.","ACE TAMER DAX: ...Okay, maybe not right after.","ACE TAMER DAX: Somebody stashed supplies on the summits. Haven't found them all yet."],
+    ['bird','sailor','BIRDKEEPER LIO',[{id:'phantern',lv:14},{id:'phantern',lv:15}],"BIRDKEEPER LIO: My terns ride the updrafts off these cliffs. Try and keep up!","BIRDKEEPER LIO: Grounded! Ha, well flown anyway.","BIRDKEEPER LIO: The west road is closed past the gate. Someday, though."],
+    ['mystic','maren','MYSTIC ELSPETH',[{id:'mesmamba',lv:16}],"MYSTIC ELSPETH: You climbed all this way to lose. The stairs whispered it.","MYSTIC ELSPETH: The stairs were wrong. It happens.","MYSTIC ELSPETH: Mesmamba nest in the grass up top. Mind its eyes."],
+    ['camper','girl','CAMPER PIA',[{id:'scrattle',lv:14},{id:'cindercub',lv:14},{id:'snipant',lv:14}],"CAMPER PIA: You're not getting past my campsite without a battle!","CAMPER PIA: Fine, fine. Marshmallow?","CAMPER PIA: Campfires up here are free to use if you've got wood."],
+    ['hiker','hiker','HIKER GRUM',[{id:'voltusk',lv:16},{id:'fistinel',lv:15}],"HIKER GRUM: Three tiers up and my legs are fine! Battle!","HIKER GRUM: My legs are fine. My pride, less so.","HIKER GRUM: The north gate's just a gate for now. Nothing past it but fog."]];
   const spots=[];for(const[x,y]of[[100,58],[70,62],[40,44],[64,28]]){let b=null,bd=24;for(const[a,c]of trail){const d=Math.hypot(a-x,c-y);if(d<bd&&freeAt(a+1,c)){bd=d;b=[a+1,c]}}if(b)spots.push([...b,'down'])}
   for(const[x,y]of stairs.filter(([x,y])=>E[y-2]?.[x]>=2||E[y+3]?.[x]>=2).sort((a,b)=>hsh(a[0],a[1],716)-hsh(b[0],b[1],716))){if(spots.length>=6)break;
     const up=E[y-2]?.[x]>E[y+2]?.[x];const tx=x+2,ty=up?y-2:y+2;if(freeAt(tx,ty))spots.push([tx,ty,up?'down':'up'])}
@@ -908,7 +912,7 @@ async function ribbonTrial(){const c=getNpc('ccorvan');sfx('ult');
   await say("The crowd roars as you step onto the marble!");
   await say("CORVAN: Welcome to the Ribbon Coliseum! Every Trialmaster tests something different. Mine is simple: GRIT.");
   await say("CORVAN: You faced down Hexwyrm on a crumbling cliff. Let's see if you can keep your footing when nobody's falling apart but you!");
-  const res=await trainerBattle({enemy:[{id:'voltusk',lv:14},{id:'snipant',lv:14},{id:'fistinel',lv:15}],name:'TRIALMASTER CORVAN',look:'corvan',npc:c,diff:'hard'});
+  const res=await trainerBattle({enemy:[{id:'voltusk',lv:13},{id:'snipant',lv:13},{id:'fistinel',lv:14}],name:'TRIALMASTER CORVAN',look:'corvan',npc:c,diff:'hard',gym:1});
   if(res===0){OW.flags.ribbon1=1;sfx('go');
     await say("CORVAN: ...Hah! HAHA! Now THAT is grit! The crowd's on its feet!");
     await say("CORVAN: By the authority of the Tamers' Guild, I present you with the FIRST RIBBON!");
@@ -953,11 +957,11 @@ async function ruinsStart(){if(OW.flags.lhDone||G.boss)return;const P=G.f[0];G.p
   G.f[0].team.forEach(u=>{u.hp=u.max;u.ult=0});OW.party.forEach(c=>c.hp=null);const al=G.f.find(f=>f.ally);if(al){al.unit.hp=al.unit.max;al.x=P.x+26;al.y=P.y}
   await say("The tower is gone. Where the lantern room stood, a crack of violet light hangs in the air... and something is climbing out of it.");
   G.shake=8;sfx('ult');await wait(.6);
-  const f=mkFighter(12,[{id:'hexwyrm',lv:14}],'hard');f.unit=f.team[0];f.boss=1;f.unit.ht=2.4;f.r=20;f.unit.max=Math.round(f.unit.max*9);f.unit.hp=f.unit.max;f.x=18*16;f.y=14*16;f.aim=PI/2;f.invuln=1.5;
+  const f=mkFighter(12,[{id:'hexwyrm',lv:encLv(13,'b')}],'hard');f.unit=f.team[0];f.boss=1;f.unit.ht=2.4;f.r=20;f.unit.max=Math.round(f.unit.max*9);f.unit.hp=f.unit.max;f.x=18*16;f.y=14*16;f.aim=PI/2;f.invuln=1.5;
   f.b={phase:1,t:2.2,fireT:1.4,tgtT:0,cleave:0};G.f.push(f);G.boss=f;G.focus=f;ring(f.x,f.y-20,60,'#a040e0',.6,'nova');fx(f.x,f.y-20,'#a040e0',40,160,.8);
   await say("HEXWYRM erupts from the rift! Its roar shakes the rubble loose.");
   await say("Your BOND BAND hums hard. Your team is fully restored. UMBRYNX bares its fangs at your side.");
-  G.paused=false;toast('BOSS: HEXWYRM · Lv14');}
+  G.paused=false;toast('BOSS: HEXWYRM · Lv'+f.unit.lv+'');}
 function arenaBox(){return{x0:2*16,y0:2*16,x1:(MW-2)*16,y1:(MH-2)*16}}
 function bossCtl(f,dt){const B=f.b,P=G.f[0],al=G.f.find(o=>o.ally&&alive(o));const A=arenaBox(),cx=(A.x0+A.x1)/2,cy=(A.y0+A.y1)/2;
   const c={mx:0,my:0,aim:f.aim,l:0,lp:0,r:0,e:0,swap:null,tx:f.x,ty:f.y};if(!alive(P))return c;
@@ -988,7 +992,7 @@ function bossCleave(f,r,t,vert){ring(0,0,0,'#f83838',t,'telerect',Object.assign(
     G.shake=Math.max(G.shake,9);for(let i=0;i<40;i++){const x=r.x0+Math.random()*(r.x1-r.x0),y=r.y0+Math.random()*(r.y1-r.y0);G.parts.push({x,y,vx:0,vy:-40,life:.5,max:.5,col:i%2?'#a040e0':'#f85838',sz:2})}ring((r.x0+r.x1)/2,(r.y0+r.y1)/2,40,'#ffffff',.25,'nova');sfx('crack')})}
 function bossBar(){const f=G.boss,u=f.unit,k=Math.max(0,u.hp/u.max),w=Math.min(360,W*.6),x0=(W-w)/2,y0=6;
   ctx.fillStyle='#1c1c28';ctx.fillRect(x0-3,y0,w+6,16);ctx.fillStyle='#3a1a4a';ctx.fillRect(x0,y0+9,w,5);ctx.fillStyle=f.mode==='immune'?'#d8c0ff':k>.5?'#a040e0':'#f85838';ctx.fillRect(x0,y0+9,w*k,5);
-  ctx.fillStyle='#ffffff';ctx.fillRect(x0+w/2,y0+8,1,7);ptext('HEXWYRM  Lv14'+(f.mode==='immune'?'  ·  IMMUNE':''),W/2,y0+4,'#ffffff',6.5)}
+  ctx.fillStyle='#ffffff';ctx.fillRect(x0+w/2,y0+8,1,7);ptext('HEXWYRM  Lv'+f.unit.lv+(f.mode==='immune'?'  ·  IMMUNE':''),W/2,y0+4,'#ffffff',6.5)}
 async function bossDefeated(f){runScript(async()=>{G.paused=true;G.proj=G.proj.filter(p=>p.owner!==f);G.beams=[];G.rings=G.rings.filter(r=>r.kind!=='telerect');G.boss=null;
   fx(f.x,f.y-20,'#a040e0',50,180,1);G.shake=10;sfx('ko');await wait(.8);
   await say("HEXWYRM lets out a final roar and unravels into violet smoke. The rift snaps shut behind it.");
@@ -1008,6 +1012,7 @@ const WILD_D={react:.55,err:.28,agg:.75,lead:.2,dodge:.18,idle:0,spd:.95,swap:0,
 const WILD_MULT={dmg:1.7,hp:1.35};
 const WILD_SP={snipant:{aggro:[95,140],turf:150,leash:330,flee:0,fac:3},scrattle:{aggro:[95,135],turf:110,leash:300,flee:0,fac:2,pack:130}};
 WILD_SP.bulwhale={aggro:[80,110],turf:120,leash:260,flee:0,fac:8};WILD_SP.verdivy={aggro:[110,150],turf:140,leash:280,flee:0,fac:9};WILD_SP.cindercub={aggro:[100,140],turf:140,leash:300,flee:0,fac:10};
+WILD_SP.dunemaw={aggro:[90,130],turf:140,leash:320,flee:0,fac:13};WILD_SP.ampoule={aggro:[120,170],turf:150,leash:300,flee:.15,fac:14};WILD_SP.prismoth={aggro:[110,160],turf:140,leash:360,flee:.2,fac:15};
 WILD_SP.voltusk={aggro:[85,120],turf:150,leash:340,flee:0,fac:4};WILD_SP.mesmamba={aggro:[150,190],turf:170,leash:300,flee:.2,fac:5};WILD_SP.phantern={aggro:[110,160],turf:130,leash:380,flee:.25,fac:6};
 async function startRoute(id,entry){const r=OW.maps[id];if(!AC){try{AC=new(window.AudioContext||window.webkitAudioContext)()}catch(e){}}
   await fadeTo(1,.3);
@@ -1032,7 +1037,7 @@ function spawnWild(initial){const R=G.route,m=R.map,P=G.f[0];if(!m.zones||!m.zon
   for(let k=0;k<20;k++){let X,Y;if(z.tiles&&z.tiles.length){const t=z.tiles[Math.floor(Math.random()*z.tiles.length)];X=t[0];Y=t[1]}else{X=z.x0+Math.floor(Math.random()*(z.x1-z.x0+1));Y=z.y0+Math.floor(Math.random()*(z.y1-z.y0+1))}const g=m.ground[Y]?.[X];if(!(z.g||[3,8]).includes(g)||m.walk[Y][X])continue;if(R.arena&&X*16>R.arena.x0-40&&X*16<R.arena.x1+40&&Y*16>R.arena.y0-40&&Y*16<R.arena.y1+40)continue;
     const x=X*16+8,y=Y*16+12;if(Math.hypot(x-P.x,y-P.y)<200)continue;const vx=x-G.cam.x,vy=y-G.cam.y;if(!initial&&vx>-30&&vx<W+30&&vy>-30&&vy<H+30)continue;
     const tot=Object.values(z.w).reduce((a,b)=>a+b,0);let r=Math.random()*tot,id='scrattle';for(const[k2,v]of Object.entries(z.w)){r-=v;if(r<=0){id=k2;break}}
-    mkWild(id,z.lv[0]+Math.floor(Math.random()*(z.lv[1]-z.lv[0]+1)),x,y,z);return}}
+    mkWild(id,encLv(z.lv[0]+Math.floor(Math.random()*(z.lv[1]-z.lv[0]+1)),'w'),x,y,z);return}}
 function mkWild(id,lv,x,y,z){const S=WILD_SP[id],f=mkFighter(S.fac,[{id,lv}],'easy');f.unit=f.team[0];f.x=x;f.y=y;f.ai.d=WILD_D;f.aim=Math.random()*6.28;f.invuln=.4;f.zone=z;f.unit.max=Math.round(f.unit.max*WILD_MULT.hp);f.unit.hp=f.unit.max;
   f.wild={hx:x,hy:y,aggro:S.aggro[0]+Math.random()*(S.aggro[1]-S.aggro[0]),turf:S.turf*(.8+Math.random()*.4),leash:S.leash,flee:S.flee,pack:S.pack||0,wt:0,wa:0,wm:0,retarget:Math.random()*.4,alert:0};
   G.f.push(f);fx(x,y,'#78c860',8,40,.4);return f}
@@ -1053,7 +1058,8 @@ function wildCtl(f,dt){const w=f.wild;w.retarget-=dt;w.alert=Math.max(0,w.alert-
 function routeXP(t){const P=G.f[0],u=P.unit,c=OW.party[P.idx];if(!c)return;const xp=Math.max(1,Math.floor(MON[t.unit.id].xp*t.unit.lv/5));c.xp+=xp;popup(P.x,P.y-44,'+'+xp+' EXP','#a8d8ff',true);const cash=6+t.unit.lv*4;OW.money=(OW.money||0)+cash;popup(P.x,P.y-54,'+$'+cash,'#f8d848',true);
   while(c.lv<100&&c.xp>=XPN(c.lv+1)){const before=calcStats(u.m,c.lv);c.lv++;const st=calcStats(u.m,c.lv),gain=st.max-u.max;Object.assign(u,st);u.lv=c.lv;u.hp=Math.min(u.max,u.hp+gain);
     sfx('go');G.banner={txt:'LV '+c.lv+'!',who:u.m.n,col:'#58a8dc',t:1.6,side:0,lvl:1};ring(P.x,P.y-6,22,'#f8d030',.5,'nova');fx(P.x,P.y-8,'#f8d030',20,90,.6,2,30);
-    showLvl(u.m,c.lv,before,st);clearTimeout(OW.lvlT);OW.lvlT=setTimeout(hideLvl,2800);$('hud').querySelector('.hpbox.p0').dataset.k=Math.random();HUD.side[0].last=null}}
+    showLvl(u.m,c.lv,before,st);clearTimeout(OW.lvlT);OW.lvlT=setTimeout(hideLvl,2800);$('hud').querySelector('.hpbox.p0').dataset.k=Math.random();HUD.side[0].last=null}
+  evolveLive(P,u,c)}
 function routeTick(dt){const R=G.route;if(!R)return;
   if(DLG||OW.menuOpen){G.paused=true;R.dlgP=1}else if(R.dlgP){R.dlgP=0;G.paused=!$('pause').hidden}
   if(G.paused)return;
@@ -1132,7 +1138,7 @@ function arenaTick(A,dt){const P=G.f[0],Mg=12;
       f.invuln=.6;ring(f.x,f.y-6,18,TC[f.unit.m.types[0]],.4,'nova');fx(f.x,f.y-8,'#ffffff',14,80,.4);sfx('swap');G.banner={txt:'Enters the battle!',who:'WILD '+f.unit.m.n.toUpperCase(),col:TC[f.unit.m.types[0]],t:1.3,side:1,raw:1};toast('A wild '+f.unit.m.n.toUpperCase()+' enters the battle!')}}}
 async function routeTrainer(n){const R=G.route,P=G.f[0];G.paused=true;const q=npcPos(n);R.spot={n,t:0};sfx('ult');await wait(.8);R.spot=null;
   for(const l of n.intro)await say(l);
-  const f=mkFighter(7,n.team.map(t=>({id:t.id,lv:t.lv})),n.diff||'normal');f.unit=f.team[0];f.rtrainer=n;f.target=P;
+  const f=mkFighter(7,n.team.map(t=>({id:t.id,lv:encLv(t.lv,'t')})),n.diff||'normal');f.unit=f.team[0];f.rtrainer=n;f.target=P;
   const a=Math.atan2(P.y-q.y,P.x-q.x);f.x=q.x+Math.cos(a)*22;f.y=q.y+Math.sin(a)*22;f.invuln=1;f.aim=a;
   const cx=(P.x+q.x)/2,cy=(P.y+q.y)/2,hw=Math.min(8*16,WW/2-8),hh=Math.min(6*16,WH/2-8);const x0=clamp(cx-hw,0,WW-2*hw),y0=clamp(cy-hh,0,WH-2*hh);
   R.arena={x0,y0,x1:x0+2*hw,y1:y0+2*hh,f,n};
@@ -1225,7 +1231,7 @@ async function marenEvent(){const mr=getNpc('maren'),p=OW.p;if(!mr||OW.flags.tet
   sfx('ult');await emote(mr,'...');
   await say("A shadow peels itself off the canal wall. Two gold eyes open in it, and a crescent of moonlight curls up behind them.");
   await say("MAREN: Don't worry. I'll tell it to go easy on you.");
-  const res=await trainerBattle({enemy:[{id:'umbrynx',lv:8}],name:'MAREN',look:'maren',npc:mr,diff:'easy'});
+  const res=await trainerBattle({enemy:[{id:'umbrynx',lv:7}],name:'MAREN',look:'maren',npc:mr,diff:'easy'});
   if(res===0){await say("MAREN: Hm. Not bad at all.");await say("MAREN: It was only using one paw, mind you. ...Mostly.")}
   else{await say("MAREN: Don't sulk. Umbrynx has been doing this a lot longer than you have.");await say("MAREN: You read its burst well, though. Most people don't see the third bolt coming.")}
   sfx('reloaded');OW.party.forEach(c=>c.hp=null);await say("Umbrynx brushes past your partner. A faint shimmer passes between them and your team feels fully rested.");
