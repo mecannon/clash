@@ -472,13 +472,14 @@ R.battle=function(){
   resize();if(CS.g!==G)R.updCam(0);const bc=battleCtx();activate(bc.ms,bc.ox,bc.oy);const s=CS.last;placeCam(s.tx,s.tz,s.pitch,s.width,s.roll);
   syncClass();postU.uTilt.value=.5;dynBegin();
   for(const f of G.f){if(!f.unit||f.bound)continue;const al=fAlpha(f),z=jumpZ(f),S=fSprite(f);
-    {const k=f.unit.ht||1,mo=fMotion(f);spr(texFor(S.c),f.x,f.y+2,32*k*mo.sx,32*k*mo.sy,{op:al,zo:-2,lift:EL(f.x,f.y)+z+mo.lift-(f.faintT>0?(1.3-f.faintT)*8:0),flash:hurtFlash(f)});shadow(f.x,f.y+.5,(8-z*.12)*Math.max(1,k*.85),2.6*Math.max(1,k*.7),.85*al)}}
+    {const k=(f.unit.ht||1)*(f.unit.m.sz||1),mo=fMotion(f);spr(texFor(S.c),f.x,f.y+2,32*k*mo.sx,32*k*mo.sy,{op:al,zo:-2,lift:EL(f.x,f.y)+z+mo.lift-(f.faintT>0?(1.3-f.faintT)*8:0),flash:hurtFlash(f)});shadow(f.x,f.y+.5,(8-z*.12)*Math.max(1,k*.85),2.6*Math.max(1,k*.7),.85*al)}}
   if(G.route&&G.route.npcs){for(const n of G.route.npcs){if(n.show&&!n.show())continue;const qx=n.x*16+8,qy=n.y*16+14;spr(texFor(HSPR[n.look][n.dir][0]),qx,qy+1,20,30,{zo:-1,lift:EL(qx,qy)});shadow(qx,qy-.5,5.5,1.8,.8)}
     for(const it of G.route.map.items||[]){if(OW.flags[it.k])continue;if(!ITEMCV){ITEMCV=mkCanvas(16,16);drawItemBall(ITEMCV.getContext('2d'),0,0)}spr(texFor(ITEMCV),it.x*16+8,it.y*16+14,16,16,{zo:-1,lift:EL(it.x*16+8,it.y*16+12)+Math.abs(Math.sin(G.t*3+it.x))*2});shadow(it.x*16+8,it.y*16+13,4,1.4,.6)}}
   for(const p of G.pods){const t=comp(p,24,34,12,28,p.x,p.y,()=>renderPod(p));spr(t,p.x,p.y+6,24,34,{zo:-6});shadow(p.x,p.y,7,2,.7)}
   for(const b of G.balls){const t=comp(b,40,46,20,30,b.x,b.y,()=>renderBall(b));spr(t,b.x,b.y+16,40,46,{zo:-10});shadow(b.x,b.y+6,ballR(b)+1,1.6,.7)}
   {const P=G.f[0];if(alive(P))occRect(P.x,P.y,26,30);else U.uOccRect.value.set(0,0,0,0)}
   for(const g of G.ghosts)spr(texFor(g.spr),g.x,g.y+2,32,32,{op:Math.max(.02,g.life/.2*.4),zo:-2});
+  for(const f of G.f)if(f.decoys&&f.unit&&SPR[f.unit.m.id])for(const d of f.decoys){const S=SPR[f.unit.m.id].norm[f.dir];spr(texFor(S[Math.floor(G.t*6)%2].c),d.x,d.y+2,32,32,{op:Math.min(1,(f.kalT||0)*2)*(.45+Math.sin(G.t*12+d.s*2)*.08),zo:-2,lift:EL(d.x,d.y)+2+Math.sin(G.t*3+d.s)*2})}
   if(bc.habs)for(const h of bc.habs)habitat3(h,h.x*16+16-bc.ox,h.y*16+32-bc.oy,G?G.t:0);
   dynEnd();
   const r=fxRect(48);

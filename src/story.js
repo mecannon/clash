@@ -422,7 +422,7 @@ function owMinimap(){const m=OW.map;if(!m||m.interior||OW.showMini===false||APP.
   ptext(m.name,x0+w/2,y0+h+8,'#ffffff',6)}
 
 /* ---------- full pause menu: team / summary / bag / card / options ---------- */
-const HT_BASE={bulwhale:1.8,fistinel:1.5,frostbunt:.6,verdivy:.9,snipant:.4,scrattle:.35,cindercub:.8,umbrynx:1.1,voltusk:1.4,mesmamba:2.1,phantern:.7};
+const HT_BASE={bulwhale:1.8,fistinel:1.5,frostbunt:.6,verdivy:.9,snipant:.4,scrattle:.35,cindercub:.8,umbrynx:1.1,voltusk:1.4,mesmamba:2.1,phantern:.7,dunemaw:.5,ampoule:.6,prismoth:.45,hexwyrmp:3.4};
 const ITEMS={potion:{n:'POTION',price:100,col:'#c860d8',d:'Restores 60 HP to one creature. Can\'t revive a fainted one.'},wood:{n:'CAMPFIRE WOOD',price:250,col:'#a86838',d:'A bundle of dry wood. Light a fire pit on a route (press E) to fully heal your whole team. One use.'},tether:{n:'TETHER',price:150,col:'#e8c060',d:'A warm seed-stone that bonds with weakened wild creatures. Throw it with Q in the field.'}};
 function curHp(i){if(APP.mode==='route'&&G&&G.f[0]&&G.f[0].team[i])return Math.max(0,Math.round(G.f[0].team[i].hp));const c=OW.party[i];return c.hp==null?calcStats(MON[c.id],c.lv).max:c.hp}
 function htTxt(c){return((HT_BASE[c.id]||1)*(c.ht||1)).toFixed(2)+' m'}
@@ -862,7 +862,7 @@ function buildRoute3(){const W=128,H=128,m=mkMapData('route3',W,H,{name:'TALONRE
   for(const sh of shelves.filter(s=>s.L>0).sort((a,b)=>b.t.length-a.t.length).slice(0,2)){let cx=0,cy=0;for(const[x,y]of sh.t){cx+=x;cy+=y}cx/=sh.t.length;cy/=sh.t.length;
     let b=null,bd=1e9;for(const[x,y]of sh.t){const d=Math.hypot(x-cx,y-cy);if(d<bd&&!m.obj[y][x]&&m.ground[y-2]?.[x]!==10&&m.ground[y+2]?.[x]!==10&&m.ground[y][x-3]!==10&&m.ground[y][x+3]!==10){bd=d;b=[x,y]}}if(b)rpit(m,b[0],b[1])}
   // ---- 6) wild creatures: tall grass on each tier, tougher the higher you climb ----
-  const POOLS=[{scrattle:3,snipant:3,voltusk:2},{snipant:3,phantern:3,scrattle:2},{voltusk:3,mesmamba:3,phantern:2},{mesmamba:4,voltusk:3,phantern:3}];
+  const POOLS=[{scrattle:3,snipant:3,voltusk:2,dunemaw:2},{snipant:3,phantern:3,scrattle:2,dunemaw:3,ampoule:1},{voltusk:3,mesmamba:3,phantern:2,ampoule:3},{mesmamba:4,voltusk:3,phantern:3,prismoth:2}];
   m.zones=[0,1,2,3].map(L=>{const tiles=[];for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(m.ground[y][x]===3&&E[y][x]===L&&C[y*W+x]===main)tiles.push([x,y]);
     return{n:'r3_tier'+L,x0:0,y0:0,x1:W-1,y1:H-1,w:POOLS[L],max:L===0?3:2,lv:[14+L,15+L],g:[3],tiles}}).filter(z=>z.tiles.length);
   // ---- 7) trainers: some on the trail, some guarding the stairs up to the high shelves ----

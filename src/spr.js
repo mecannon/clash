@@ -1455,3 +1455,95 @@ function drawHexwyrm(dir,fr,st){const g=SG(64,64),P=PAL,F=P.wyrm,Wg=P.wwing,Bl=P
   }
   if(imm){for(let i=0;i<g.p.length;i++){const v=g.p[i];if(v&&v!==F.line)g.p[i]=hmix(v,'#e0c8ff',.38)}}
   return g}
+
+/* ===== WAVE 3: DUNEMAW (ground antlion), AMPOULE (electric lantern jelly), PRISMOTH (psychic/ice crystal moth) ===== */
+PAL.sand=RP('#3a2410','#8a6234','#b88a4a','#dcb46e','#f6dca0');
+PAL.jaw=RP('#1c0e06','#4a2c14','#6e4222','#9a6436','#c89462');
+PAL.jelly=RP('#1a1c50','#3a4aa0','#5a78d8','#8eb4f4','#d8ecff');
+PAL.bulb=RP('#4a3a08','#b89a20','#e8cc38','#f8ec78','#fffce0');
+PAL.fluff=RP('#3e1640','#80387c','#b862ae','#e49cdc','#fff0fc');
+PAL.crys=RP('#2a3a78','#5a86c8','#8cc4ee','#c6ecff','#ffffff');
+const DTIP='#fff0c8',DEYE='#f8f070',PRE='#ff4ab0';
+function drawDunemaw(dir,fr,st){const g=SG(32,32),P=PAL,S=P.sand,J=P.jaw,b=fr?1:0;
+  if(st==='burrow'){part(g,E(16,26,11,4.2),S,{ly:-1});
+    pxs(g,[[9,25],[13,23],[19,24],[23,26],[16,27]],S.r[3]);hline(g,11,21,27,S.r[0]);px(g,12,26,S.r[0]);px(g,20,26,S.r[0]);
+    part(g,PG([[11,24],[9,18+b],[10,17+b],[12,20+b],[13,24]]),J);part(g,PG([[21,24],[23,18+b],[22,17+b],[20,20+b],[19,24]]),J);px(g,10,17+b,DTIP);px(g,22,17+b,DTIP);
+    for(const[x,y]of[[5,28],[27,27],[8,29],[25,29]])px(g,x,y-b,S.r[2]);return g}
+  const legs=L=>{for(const[x0,y0,x1,y1]of L){lineG(g,x0,y0,x1,y1,J.line);px(g,x1,y1,J.r[2])}};
+  const plates=(ab,ys,x0,x1,horiz)=>{for(const v of ys)for(let w=x0;w<=x1;w++){const x=horiz?v:w,y=horiz?w:v;if(interior(ab,g,x,y))px(g,x,y,S.r[1])}};
+  const bristle=(ab)=>{for(let y=1;y<31;y++)for(let x=1;x<31;x++)if(!get(g,x,y)&&(x*7+y*3)%5===0){for(const[dx,dy]of[[1,0],[-1,0],[0,1],[0,-1]])if(inMask(ab,g,x+dx,y+dy)&&get(g,x+dx,y+dy)===S.line){px(g,x,y,J.r[1]);break}}};
+  if(dir==='down'){
+    legs([[8,18+b,3,22],[9,21+b,5,26],[24,18+b,29,22],[23,21+b,27,26]]);
+    const ab=part(g,E(16,14+b,11,8.5),S);plates(ab,[9+b,12+b,15+b,18+b],5,27);bristle(ab);
+    for(const[x,y]of[[11,10],[21,10],[13,13],[19,13],[16,16]])px(g,x,y+b,S.line);pxs(g,[[10,8+b],[13,7+b],[19,7+b]],S.r[3]);
+    part(g,E(16,21+b,7,4.6),J,{bias:.15});pxs(g,[[13,18+b],[14,18+b],[18,18+b]],J.r[3]);
+    const jw=fr?1:0;
+    for(const s of[1,-1]){const m=x=>s>0?x:32-x,J2=PG([[m(12),22+b],[m(7),22+b],[m(4)-s*jw,25],[m(3.5)-s*jw,29],[m(6)-s*jw,30.5],[m(6.5)-s*jw,27],[m(9),24.5+b],[m(13),24+b]]);
+      part(g,J2,J);px(g,m(4)-s*jw,29,DTIP);px(g,m(5)-s*jw,30,DTIP);px(g,m(4)-s*jw,26,J.r[3]);px(g,m(8),25+b,DTIP);px(g,m(10),24+b,DTIP)}
+    for(const ex of[12,19]){px(g,ex,20+b,DEYE);px(g,ex+1,20+b,DEYE);px(g,ex,21+b,INK);px(g,ex+1,21+b,'#6a5a10');px(g,ex,20+b,'#ffffff')}
+    hline(g,15,17,23+b,J.r[0]);
+  }else if(dir==='up'){
+    for(const s of[1,-1]){const m=x=>s>0?x:32-x;part(g,PG([[m(12),10+b],[m(8),7+b],[m(7),3+b],[m(9),2+b],[m(10),6+b],[m(13),8+b]]),J);px(g,m(8),2+b,DTIP);px(g,m(7),4+b,J.r[3])}
+    part(g,E(16,10+b,6,3.8),J);
+    legs([[8,14+b,3,12],[8,19+b,3,22],[24,14+b,29,12],[24,19+b,29,22]]);
+    const ab=part(g,E(16,18+b,11,9),S);plates(ab,[12+b,15+b,18+b,21+b,24+b],5,27);bristle(ab);
+    for(let y=11;y<=25;y++){const w=Math.round(2+Math.abs(Math.sin(y*.9))*1.5);if(interior(ab,g,16,y+b)&&y%3)hline(g,16-w,16+w,y+b,S.r[0])}
+    pxs(g,[[10,15+b],[22,15+b],[9,20+b],[23,20+b]],S.line);pxs(g,[[12,12+b],[13,11+b]],S.r[3]);
+  }else{
+    legs([[19,22+b,17,28],[23,22+b,24,28]]);
+    const ab=part(g,E(21,16+b,10,7.5),S);plates(ab,[16,20,24,28],8,26,1);bristle(ab);
+    pxs(g,[[19,11+b],[23,12+b],[27,15+b]],S.r[3]);pxs(g,[[18,15+b],[22,17+b],[26,19+b]],S.line);
+    part(g,E(10,20+b,5.6,4.4),J,{bias:.15});px(g,9,17+b,J.r[3]);px(g,10,17+b,J.r[3]);
+    const jw=fr?1:0;
+    part(g,PG([[7,18+b],[3,15+b-jw],[0,15.5+b-jw],[1,17+b],[4,18.5+b],[6,20+b]]),J);
+    part(g,PG([[7,23+b],[3,25.5+b+jw],[0,25+b+jw],[1,23.5+b],[4,22.5+b],[6,21.5+b]]),J);
+    px(g,0,16+b-jw,DTIP);px(g,0,25+b+jw,DTIP);px(g,3,18+b,DTIP);px(g,3,23+b,DTIP);
+    px(g,9,19+b,'#ffffff');px(g,10,19+b,DEYE);px(g,9,20+b,DEYE);px(g,10,20+b,INK);
+    legs([[13,22+b,10,28],[16,23+b,14,29]]);
+  }
+  fillHoles(g);return g}
+function drawAmpoule(dir,fr,st){const g=SG(32,32),P=PAL,J=P.jelly,B=P.bulb,b=fr?1:0,hot=st==='charge',side=dir==='left',cx=side?15:16;
+  const lean=side?.32:0;
+  // thin trailing tentacles
+  for(const[x,L]of side?[[11,9],[21,11]]:[[8,9],[24,9],[11,11],[21,11]]){for(let k=0;k<L;k++)px(g,Math.round(x+Math.sin(k*.8+x+fr*1.7)*1+lean*k),15+b+k,k%3===2?J.r[3]:J.r[2]);px(g,Math.round(x+lean*L),15+b+L,hot?'#ffffff':B.r[3])}
+  // frilly oral arms: 2px ribbons with glowing nodes
+  for(const[x,L,ph]of side?[[14,13,0],[18,14,2]]:[[13,13,0],[16,15,2],[19,13,4]]){for(let k=0;k<L;k++){const xx=Math.round(x+Math.sin(k*.6+ph+fr*1.4)*1.4+lean*k);px(g,xx,15+b+k,J.r[3]);px(g,xx+1,15+b+k,k%2?J.r[1]:J.r[2]);if(k%4===2){px(g,xx,15+b+k,B.r[3]);px(g,xx+1,15+b+k,B.r[2])}}px(g,Math.round(x+lean*L),15+b+L,hot?'#ffffff':B.r[3])}
+  // bell
+  const bell=part(g,DF(E(cx,10+b,side?10:11,9),RR(0,15+b,31,31)),J,{lx:-.4,ly:-.9});
+  for(let x=cx-10;x<=cx+10;x+=3){px(g,x,15+b,J.r[3]);px(g,x+1,15+b,J.r[1])}
+  hline(g,cx-9,cx+9,14+b,J.r[1]);
+  // glowing lamp
+  for(const[dx,dy]of[[-4,0],[4,0],[0,-4],[-3,-3],[3,-3],[-3,3],[3,3]])if(inMask(bell,g,cx+dx,6+b+dy))px(g,cx+dx,6+b+dy,hot?B.r[3]:J.r[3]);
+  part(g,E(cx,6+b,2.8,2.8),B,{bias:hot?.5:.2});px(g,cx-1,5+b,'#ffffff');
+  if(dir==='down'){for(const ex of[11,20]){px(g,ex,10+b,INK);px(g,ex+1,10+b,INK);px(g,ex,11+b,INK);px(g,ex+1,11+b,'#2a3a8a');px(g,ex,10+b,'#ffffff')}
+    pxs(g,[[9,12+b],[23,12+b]],'#f8a0c8');pxs(g,[[15,12+b],[17,12+b]],J.line);px(g,16,13+b,J.line)}
+  else if(side){px(g,8,10+b,INK);px(g,9,10+b,INK);px(g,8,11+b,INK);px(g,9,11+b,'#2a3a8a');px(g,8,10+b,'#ffffff');px(g,7,12+b,'#f8a0c8');px(g,6,13+b,J.line)}
+  else{for(let x=cx-7;x<=cx+7;x+=4)px(g,x,9+b,J.r[1])}
+  pxs(g,[[cx-7,4+b],[cx-6,3+b]],J.r[3]);px(g,cx-5,2+b,'#ffffff');
+  if(hot)pxs(g,[[3,6+b],[28,8+b],[4,16+b],[27,17+b],[2,11+b],[29,13+b]],'#fffce0');
+  fillHoles(g);return g}
+function crysWing(g,pts,lx,facets){const sh=PG(pts);part(g,sh,PAL.crys,{lx,ly:-.8});for(const[a,b2,c,d,col]of facets)lineG(g,a,b2,c,d,col);return sh}
+function drawPrismoth(dir,fr,st){const g=SG(32,32),P=PAL,F=P.fluff,C=P.crys,K=P.pink,b=fr?1:0;
+  if(dir!=='left'){const up=dir==='up';
+    const lw=fr?[[14,16],[6,19],[4,24],[8,25],[14,20]]:[[14,16],[5,21],[4,27],[9,26],[14,20]];
+    for(const s of[1,-1]){const m=x=>s>0?x:31-x;crysWing(g,lw.map(([x,y])=>[m(x),y+b]),s>0?-.6:.6,[[m(13),17+b,m(7),22+b,K.r[2]]])}
+    const uw=fr?[[14,12],[7,8],[1,8],[1,13],[6,17],[14,16]]:[[14,12],[9,4],[2,1],[1,7],[4,14],[14,16]];
+    for(const s of[1,-1]){const m=x=>s>0?x:31-x;crysWing(g,uw.map(([x,y])=>[m(x),y+b]),s>0?-.6:.6,fr?[[m(12),13+b,m(3),10+b,K.r[2]],[m(10),15+b,m(4),13+b,C.r[3]]]:[[m(12),13+b,m(4),4+b,K.r[2]],[m(11),15+b,m(3),9+b,C.r[3]]]);
+      px(g,m(fr?3:4),(fr?10:5)+b,'#ffffff');px(g,m(fr?5:6),(fr?12:9)+b,K.r[3])}
+    part(g,E(16,18+b,3.2,6),F);for(const y of[16,19,22])px(g,16,y+b,F.r[1]);
+    part(g,E(16,12+b,4.6,3.6),F,{bias:.2});pxs(g,[[12,14+b],[14,14+b],[18,14+b],[20,14+b]],F.r[3]);
+    if(!up){part(g,E(16,9+b,3.8,3.2),F);
+      for(const[ex,s]of[[14,1],[18,-1]]){px(g,ex,9+b,PRE);px(g,ex-s,9+b,PRE);px(g,ex,10+b,'#a01868');px(g,ex-s,10+b,PRE);px(g,ex-s,8+b,'#ffffff')}}
+    else part(g,E(16,9+b,3.6,3),F,{bias:-.1});
+    for(const s of[1,-1]){const m=x=>s>0?x:31-x;lineG(g,m(15),6+b,m(12),2+b,F.r[0]);px(g,m(11),2+b,F.r[3]);px(g,m(12),1+b,F.r[3]);px(g,m(13),3+b,F.r[2])}
+  }else{
+    crysWing(g,(fr?[[16,13],[23,9],[28,11],[24,16],[17,17]]:[[16,13],[21,3],[27,1],[26,8],[18,16]]).map(([x,y])=>[x,y+b]),.3,[]);
+    part(g,E(19,17+b,6,3.4),F);for(const x of[18,21,24])px(g,x,17+b,F.r[1]);
+    part(g,E(12,14+b,3.6,3.6),F,{bias:.2});
+    part(g,E(9,12+b,3.4,3),F);px(g,7,12+b,PRE);px(g,8,12+b,PRE);px(g,7,13+b,'#a01868');px(g,8,11+b,'#ffffff');
+    lineG(g,9,9+b,7,4+b,F.r[0]);px(g,6,4+b,F.r[3]);px(g,7,3+b,F.r[3]);
+    crysWing(g,(fr?[[13,14],[20,13],[27,16],[23,21],[14,18]]:[[13,13],[17,5],[23,0],[25,5],[21,13],[14,17]]).map(([x,y])=>[x,y+b]),-.4,fr?[[15,15+b,24,17+b,K.r[2]]]:[[15,14+b,22,3+b,K.r[2]]]);
+    crysWing(g,[[13,17+b],[16,22+b],[13,26+b],[11,22+b]],-.4,[]);
+    px(g,fr?25:23,(fr?16:1)+b,'#ffffff');
+  }
+  fillHoles(g);return g}

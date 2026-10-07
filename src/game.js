@@ -199,7 +199,7 @@ function applySt(t,st){if(!st)return;
   if(st.slow){t.st.slowT=Math.max(t.st.slowT,st.slow[0]);t.st.slowA=Math.max(st.slow[1],t.st.slowT>0?t.st.slowA:0)}
   if(st.stun&&!t.boss&&t.st.stunImm<=0&&t.st.stun<=0){t.st.stun=st.stun;t.dash=null;popup(t.x,t.y-34,'STUNNED','#f8d030',true)}}
 function hit(src,tgt,pow,type,o={}){
-  if(!alive(tgt)||tgt.invuln>0)return -1;
+  if(!alive(tgt)||tgt.invuln>0||tgt.mode==='burrow')return -1;
   const e=eff(type,tgt.unit.m.types);
 
   const cls=o.cls||src.unit.m.cls,atk=o.atk||src.unit.dmg,def=cls==='mag'?tgt.unit.mdef:tgt.unit.pdef,lf=LF(o.lv||src.unit.lv);
@@ -223,7 +223,7 @@ function hit(src,tgt,pow,type,o={}){
   return d}
 function hurtPod(p,d){p.hp-=d;p.hurt=.1;fx(p.x,p.y-6,'#ee5c98',4,50,.3);if(p.hp<=0)p.dead=1}
 function faint(t,src){if(G.route&&(t.wild||t.rtrainer)&&src&&src.side===0)routeXP(t);if(G.kos&&t.side===1&&t.unit.hp>-1e6)G.kos.push({id:t.unit.id,lv:t.unit.lv,used:[...G.f[0].used]});t.unit.hp=0;t.faintT=1.3;t.dash=null;t.channel=0;t.root=0;src.kos++;popup(t.x,t.y-38,t.unit.m.n.toUpperCase()+' FAINTED!','#f85858',true);fx(t.x,t.y-8,'#ffffff',24,90,.7);G.shake=6;G.hitstop=.12;sfx('ko');endModes(t)}
-function endModes(f){f.link=null;f.mom=0;f.veilT=0;f.frenzyT=0;f.rushT=0;f.mode='norm';f.absorbed=0;f.stream=null;f.homerT=0;G.balls=G.balls.filter(b=>b.owner!==f)}
+function endModes(f){f.nodes=null;f.mirror=null;f.decoys=null;f.kalT=0;f.burT=0;f.immT=0;f.link=null;f.mom=0;f.veilT=0;f.frenzyT=0;f.rushT=0;f.mode='norm';f.absorbed=0;f.stream=null;f.homerT=0;G.balls=G.balls.filter(b=>b.owner!==f)}
 function resetTransient(f){f.st={slowT:0,slowA:0,stun:0,stunImm:0,burn:0};f.chargeT=0;f.charging=0;f.channel=0;f.root=0;f.dash=null;f.kvx=f.kvy=0;f.seeds=0;endModes(f)}
 function matchScore(u,v){let off=0,def=0;for(const mv of u.m.moves)off=Math.max(off,eff(mv.t,v.m.types)*(u.m.types.includes(mv.t)?1.2:1));for(const mv of v.m.moves)def=Math.max(def,eff(mv.t,u.m.types)*(v.m.types.includes(mv.t)?1.2:1));return off-def+u.hp/u.max*.6}
 function bringIn(f,i){f.idx=i;f.used.add(i);f.unit=f.team[i];resetTransient(f);f.invuln=1;ring(f.x,f.y-6,16,TC[f.unit.m.types[0]],.35,'nova');fx(f.x,f.y-8,'#ffffff',14,60,.4);sfx('swap')}
@@ -603,7 +603,7 @@ function update(dt){
   for(const p of G.proj){
     p.life-=dt;p.t+=dt;
     if(p.kind==='drop'){const k=Math.exp(-1.6*dt);p.vx*=k;p.vy*=k;p.r=Math.min(5,p.r+dt*4)}
-    p.x+=p.vx*dt;p.y+=p.vy*dt;
+    p.x+=p.vx*dt;p.y+=p.vy*dt;mirrorTest(p);if(p.dead)continue;
     if(p.kind==='fireball'||p.kind==='ember')G.parts.push({x:p.x+(Math.random()-.5)*p.r,y:p.y+(Math.random()-.5)*p.r,vx:0,vy:-20,life:.3,max:.3,col:Math.random()<.5?'#f47a18':'#f8c040',sz:p.kind==='fireball'?2:1});
     else if(p.kind!=='drop'&&Math.random()<(p.kind==='dart'?.9:.4))G.parts.push({x:p.x,y:p.y,vx:0,vy:0,life:p.kind==='dart'?.3:.18,max:p.kind==='dart'?.3:.18,col:p.kind==='dart'?(Math.random()<.5?'#f8ffc8':'#ffe468'):TC[p.type],sz:p.kind==='dart'?2:1});
     for(const t of foes(p.owner)){if(p.dead)break;const ty=t.y-6;
@@ -630,7 +630,7 @@ function update(dt){
     for(const q of G.pods)if(b.live&&q.owner!==f&&Math.hypot(b.x-q.x,b.y-(q.y-6))<br+6){hurtPod(q,ballPow(b)*LF(f.unit.lv));shatter(b)}
   }G.balls=G.balls.filter(b=>!b.dead);
   // burning ground
-  for(const fi of G.fires){fi.life-=dt;for(const t of foes(fi.owner))if(Math.hypot(t.x-fi.x,t.y-fi.y)<fi.r+t.r&&!t.unit.m.types.includes('flying')){if(fi.tox){toxTouch(fi,t);continue}applySt(t,{burn:1.5});t.lastHit=fi.owner}}G.fires=G.fires.filter(fi=>fi.life>0);
+  for(const fi of G.fires){fi.life-=dt;for(const t of foes(fi.owner))if(Math.hypot(t.x-fi.x,t.y-fi.y)<fi.r+t.r&&!t.unit.m.types.includes('flying')){if(fi.pit){pitTouch(fi,t);continue}if(t.mode==='burrow')continue;if(fi.tox){toxTouch(fi,t);continue}applySt(t,{burn:1.5});t.lastHit=fi.owner}}G.fires=G.fires.filter(fi=>fi.life>0);
   // pods
   for(const p of G.pods){p.life-=dt;p.cd-=dt;p.open=Math.max(0,p.open-dt);p.hurt=Math.max(0,p.hurt-dt);p.grow=Math.min(1,p.grow+dt*5);if(p.life<=0)p.dead=1;if(p.dead){fx(p.x,p.y-6,'#62b84a',10,50,.4);continue}
     let t=null;{let bd=150;for(const o of foes(p.owner)){const d=Math.hypot(o.x-p.x,o.y-p.y);if(d<bd&&los({x:p.x,y:p.y-6},o)){bd=d;t=o}}}if(p.cd<=0&&t){p.cd=.8;p.open=.2;const a=Math.atan2(t.y-6-(p.y-8),t.x-p.x);
@@ -646,7 +646,7 @@ function update(dt){
     if(b.t>b.o.windup+b.o.dur)b.dead=1}G.beams=G.beams.filter(b=>!b.dead);
   updParts(dt);
 }
-function splash(p){if(p.kind==='hook'){hookEnd(p);return}
+function splash(p){if(p.kind==='hook'){hookEnd(p);return}if(refract(p))return;
 if(p.kind==='fireball'&&!p.boomed){p.boomed=1;const f=p.owner;ring(p.x,p.y,p.boom,'#f47a18',.35,'nova');fx(p.x,p.y,'#f8c040',20,p.boom*4,.5);for(const t of foes(f))if(!p.hit.has(t.unit)&&Math.hypot(t.x-p.x,t.y-6-p.y)<p.boom+t.r)hit(f,t,p.pow*.6,'fire',{kb:120,ka:Math.atan2(t.y-p.y,t.x-p.x),st:{burn:2+3*p.burnK}});if(!solidWalk(p.x,p.y+6))G.fires.push({x:p.x,y:p.y+6,r:6+p.boom*.4,life:2,owner:f,seed:Math.random()*6});G.shake=Math.max(G.shake,2+p.burnK*3);sfx('boom');return}
 const col=TC[p.type];fx(p.x,p.y,col,p.kind==='blob'||p.kind==='blast'?12:5,p.kind==='blast'?110:60,.3);if(p.kind==='blob')ring(p.x,p.y,9,'#a8d8ff',.2,'nova');if(p.kind==='blast')ring(p.x,p.y,14,'#fff4b0',.25,'nova')}
 function updCam(dt){if(r3dOn()){R3D.updCam(dt);return}const p=G.f[0];const k=1-Math.exp(-9*dt);const tx=WW<=W?(WW-W)/2:clamp(p.x-W/2,0,WW-W),ty=WH<=H?(WH-H)/2:clamp(p.y-8-H/2,0,WH-H);G.cam.x+=(tx-G.cam.x)*k;G.cam.y+=(ty-G.cam.y)*k;M.x=G.cam.x+M.sx;M.y=G.cam.y+M.sy}
@@ -729,7 +729,7 @@ function drawFighter(f){
   const sx=Math.round(f.x-16),sy=fSY(f,z);
   const behind=f.dir==='up';
   if(behind)drawGear(f,sx,sy,z);
-  ctx.globalAlpha=al;{const k=f.unit.ht||1,mo=fMotion(f),w=Math.round(32*k*mo.sx),h=Math.round(32*k*mo.sy);ctx.drawImage(f.hurt>0?S.w:S.c,Math.round(f.x-w/2),Math.round(sy+32-h-mo.lift+30*(1-k)*0),w,h)}ctx.globalAlpha=1;
+  ctx.globalAlpha=al;{const k=(f.unit.ht||1)*(f.unit.m.sz||1),mo=fMotion(f),w=Math.round(32*k*mo.sx),h=Math.round(32*k*mo.sy);ctx.drawImage(f.hurt>0?S.w:S.c,Math.round(f.x-w/2),Math.round(sy+32-h-mo.lift+30*(1-k)*0),w,h)}ctx.globalAlpha=1;
   if(!behind)drawGear(f,sx,sy,z);
   if(groundAt(f.x,f.y)===3&&z<2&&f.faintT<=0)ctx.drawImage(TALL_OVER,Math.round(f.x-16),Math.round(f.y-6));
   fighterOver(f,sy);
@@ -752,7 +752,7 @@ function fighterOver(f,sy){
   if(f.unit.ult>=100&&!f.wild){ctx.fillStyle=Math.floor(G.t*6)%2?'#ffffff':'#f8d030';ctx.fillRect(Math.round(f.x)+w/2+2,y0,2,2)}
   if(f.wild){ptext('Lv'+f.unit.lv,f.x,y0-8,f.unit.id==='scrattle'?'#f8e0c0':'#ffc0a8',6);if(f.wild.alert>0){const ay=y0-18-(f.wild.alert>.6?(f.wild.alert-.6)*20:0);ctx.fillStyle='#282830';ctx.fillRect(Math.round(f.x)-3,Math.round(ay),7,9);ctx.fillStyle='#ffffff';ctx.fillRect(Math.round(f.x)-2,Math.round(ay)+1,5,7);ctx.fillStyle='#f83838';ctx.fillRect(Math.round(f.x),Math.round(ay)+2,1,3);ctx.fillRect(Math.round(f.x),Math.round(ay)+6,1,1)}}
 }
-function drawGear(f,sx,sy,z){const id=f.unit.m.id,a=f.aim,ca=Math.cos(a),sa=Math.sin(a);
+function drawGear(f,sx,sy,z){const id=f.unit.m.id,a=f.aim,ca=Math.cos(a),sa=Math.sin(a);if(GEAR2[id])GEAR2[id](f,a,ca,sa);
   if(id==='voltusk'||id==='mesmamba'||id==='phantern')drawGearNew(f,id,a,ca,sa);
   if(id==='cindercub'&&f.charging){const k=f.chargeT/1.2,r=2+5*k+Math.sin(G.t*30)*.7,x=f.x+ca*10,y=f.y-12+sa*6;pcirc(x,y,r+1,'#5a1000');pcirc(x,y,r,'#f47a18');pcirc(x,y,r*.6,'#f8c040');pcirc(x-1,y-1,Math.max(.5,r*.3),'#fff6c0');if(k>=1&&Math.floor(G.t*10)%2)pring(x,y,r+3,'#ffffff',2)}
   if(id==='scrattle'&&f.windT>0){const k=1-f.windT/.45;for(let i=0;i<10;i++){const aa=-k*6+i*.25;ctx.fillStyle=i===9?'#ffffff':'#d8809c';ctx.fillRect(Math.round(f.x+Math.cos(aa)*(8+i)),Math.round(f.y-4+Math.sin(aa)*(5+i*.6)),2,2)}}
@@ -800,7 +800,7 @@ function drawProj(p){const col=TC[p.type],x=Math.round(p.x),y=Math.round(p.y);co
     case'hook':{const f=p.owner,ox=f.x,oy=f.y-12,n=Math.ceil(Math.hypot(p.x-ox,p.y-oy)/4);for(let i=0;i<n;i++){const q=i/n;ctx.fillStyle=i%2?'#30aca8':'#ccfff2';ctx.fillRect(Math.round(ox+(p.x-ox)*q),Math.round(oy+(p.y-oy)*q),2,1)}
       pcirc(p.x,p.y,3,'#0c3440');pcirc(p.x,p.y,2,'#70e0d0');ctx.fillStyle='#ffffff';ctx.fillRect(Math.round(p.x+c*2),Math.round(p.y+s*2),1,1);pline(p.x+s*3,p.y-c*3,p.x+s*3-c*3,p.y-c*3-s*3,1,'#ccfff2');pline(p.x-s*3,p.y+c*3,p.x-s*3-c*3,p.y+c*3-s*3,1,'#ccfff2');break}
     case'ddart':{ctx.save();ctx.translate(x,y);ctx.rotate(a);ctx.fillStyle='#1e0a38';ctx.fillRect(-6,-3,10,6);ctx.fillStyle='#a040e0';ctx.fillRect(-5,-2,8,4);ctx.fillStyle='#e8b8ff';ctx.fillRect(-1,-1,4,2);ctx.restore();break}
-    default:pcirc(p.x,p.y,p.r,col)}}
+    default:if(!drawProj2(p))pcirc(p.x,p.y,p.r,col)}}
 function drawStreams(){const ds=G.proj.filter(p=>p.kind==='drop').sort((a,b)=>a.owner.side-b.owner.side||a.seq-b.seq);
   for(const pass of[[5,'#2a4f94'],[3,'#58a0ec'],[1,'#e2f8ff']]){for(let i=0;i<ds.length;i++){const a=ds[i],b=ds[i+1];const w=Math.max(1,Math.round(pass[0]*(.7+a.r/8)));
       if(b&&b.owner===a.owner&&b.seq===a.seq+1&&Math.hypot(a.x-b.x,a.y-b.y)<24)pline(a.x,a.y,b.x,b.y,w,pass[1]);else pcirc(a.x,a.y,w/2+.5,pass[1])}}
@@ -829,7 +829,7 @@ function drawRing(r){const k=1-r.life/r.max;ctx.globalAlpha=1-k;
   else if(r.kind==='arc'){ctx.fillStyle=r.col;for(let i=0;i<=10;i++){const a=r.a-r.arc/2+r.arc*i/10;for(const rr of[r.r*.7,r.r]){ctx.fillRect(Math.round(r.x+Math.cos(a)*rr),Math.round(r.y+Math.sin(a)*rr),1,1)}}}
   else pring(r.x,r.y,r.r*(1+k*.4),r.col,1.4);
   ctx.globalAlpha=1}
-function drawFire(fi){if(fi.tox){drawTox(fi);return}const k=Math.min(1,fi.life*1.5);ctx.globalAlpha=.3*k;pell(fi.x,fi.y,fi.r,fi.r*.55,'#5a1000');ctx.globalAlpha=k;
+function drawFire(fi){if(fi.pit){drawPit(fi);return}if(fi.tox){drawTox(fi);return}const k=Math.min(1,fi.life*1.5);ctx.globalAlpha=.3*k;pell(fi.x,fi.y,fi.r,fi.r*.55,'#5a1000');ctx.globalAlpha=k;
   for(let i=0;i<7;i++){const a=i*2.4+fi.seed,rr=(i%3+1)/3*fi.r*.8,x=Math.round(fi.x+Math.cos(a)*rr),y=Math.round(fi.y+Math.sin(a)*rr*.55),h=3+((G.t*12+i*5)|0)%4;
     ctx.fillStyle='#d03a10';ctx.fillRect(x-1,y-h,3,h);ctx.fillStyle='#f8a030';ctx.fillRect(x,y-h+1,1,h-1);ctx.fillStyle='#fff6c0';ctx.fillRect(x,y-1,1,1)}ctx.globalAlpha=1}
 function render(){
@@ -944,7 +944,8 @@ function special(f){switch(f.unit.m.id){
   case'verdivy':return['SEEDS '+Math.floor(f.seeds)+'/8 · PODS '+G.pods.filter(p=>p.owner===f).length,f.seeds/8];
   case'voltusk':return[f.mode==='roll'?'ROLLING · '+Math.round((f.mom||0)*100)+'% MOMENTUM':f.faultW>0?'QUAKING...':f.unit.cd[1]>0?'ROLL '+f.unit.cd[1].toFixed(1)+'s':'ROLL READY',f.mode==='roll'?(f.mom||0):1-f.unit.cd[1]/5];
   case'mesmamba':{const n=G.fires.filter(q=>q.tox&&q.owner===f).length;return[f.link?'LINKED · CRUSH IN '+Math.max(0,LINK_T-f.link.time).toFixed(1)+'s':(f.unit.cd[1]>0?'GAZE '+f.unit.cd[1].toFixed(1)+'s':'GAZE READY')+' · POOLS '+n,f.link?f.link.time/LINK_T:1-f.unit.cd[1]/8]}
-  case'phantern':return[f.mode==='veil'?'VEILED '+f.veilT.toFixed(1)+'s':f.unit.cd[1]>0?'HOOK '+f.unit.cd[1].toFixed(1)+'s':'HOOK READY',f.mode==='veil'?f.veilT/4.5:1-f.unit.cd[1]/4.5]}}
+  case'phantern':return[f.mode==='veil'?'VEILED '+f.veilT.toFixed(1)+'s':f.unit.cd[1]>0?'HOOK '+f.unit.cd[1].toFixed(1)+'s':'HOOK READY',f.mode==='veil'?f.veilT/4.5:1-f.unit.cd[1]/4.5]
+  default:return SPECIAL2[f.unit.m.id]?SPECIAL2[f.unit.m.id](f):['',0]}}
 function updHud(){
   const FOC=G.route?(G.focus&&alive(G.focus)&&dist(G.focus,G.f[0])<420?G.focus:null):G.f[1];
   [G.f[0],FOC].forEach((f,si)=>{const H_=HUD.side[si];H_.el.hidden=!f;if(!f)return;const u=f.unit;if(!u)return;
