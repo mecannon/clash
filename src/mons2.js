@@ -5,21 +5,21 @@
 const PIT_R=58,COIL_MAX=2,COIL_REACH=150,WIRE_MAX=210,MIRROR_L=44,BURROW_T=2.5,CLEAVE2_L=150,CLEAVE2_W=46;
 MONS.push(
 {id:'dunemaw',n:'Dunemaw',types:['ground'],stats:{hp:80,dmg:88,pdef:86,mdef:58,int:66,spe:74},cls:'phys',xp:70,draw:drawDunemaw,states:['norm','burrow'],ammo:{max:6,rl:1.2,unit:'sprays',verb:'SCOOPING SAND',d:'6 sand sprays, then scoops more for 1.2s.'},
- role:'Trapper',blurb:'An antlion larva with sickle jaws. It digs funnels in the dirt, waits at the bottom, and lets gravity do the hunting.',
+ role:'Ambusher',blurb:'A land shark pup that swims through loose sand like water. All you see is the fin, circling, right before the ground opens up.',
  moves:[
-  {k:'LMB',n:'Sand Spray',t:'ground',pow:'6 ×5',cd:.55,d:'Fling a short fan of grit. Each grain slows a little; point blank, all five land.'},
-  {k:'RMB',n:'Burrow',t:'ground',pow:46,cd:6,d:'Dive underground for up to 2.5s: untouchable and 40% faster, but you can\'t attack. Right-click again (or run out of air) to erupt and launch everything around you.'},
-  {k:'E',n:'Antlion Pit',t:'ground',pow:'14 / bite',cd:0,d:'Sink a huge sand funnel at the cursor for 5s. Foes inside are dragged toward the middle and slowed, and the bottom bites every 0.4s. Flyers float over it.'}]},
+  {k:'LMB',n:'Gill Spout',t:'ground',pow:'6 ×5',cd:.55,d:'Blast a short fan of sand out of your gills. Each grain slows a little; point blank, all five land.'},
+  {k:'RMB',n:'Sand Dive',t:'ground',pow:'12 / 46',cd:6,d:'Dive under the sand for up to 2.5s: untouchable and 40% faster, only your fin showing. The fin slices each foe it passes (12). Right-click again (or run out of air) to BREACH, launching everything around you.'},
+  {k:'E',n:'Sand Maelstrom',t:'ground',pow:'14 / bite',cd:0,d:'Churn a huge sand whirlpool at the cursor for 5s. Foes inside are dragged toward the middle and slowed, and the eye of it bites every 0.4s. Flyers float over it.'}]},
 {id:'ampoule',n:'Ampoule',types:['electric'],stats:{hp:64,dmg:88,pdef:56,mdef:88,int:100,spe:82},cls:'mag',xp:70,draw:drawAmpoule,states:['norm','charge'],ammo:{max:10,rl:1.3,unit:'zaps',verb:'RECHARGING',d:'10 zaps, then recharges for 1.3s.'},
  role:'Controller',blurb:'A lantern jellyfish that drifts over storm-flooded fields. It strings live wires between floating coils and itself, then waits for you to touch one.',
  moves:[
   {k:'LMB',n:'Arc Zap',t:'electric',pow:'13 (+18)',cd:.28,d:'A quick bolt. Shoot one of your own Tesla Coils and it relays an amplified bolt at the nearest foe.'},
-  {k:'RMB',n:'Tesla Coil',t:'electric',pow:'9 / tick',cd:1.5,d:'Float a coil at the cursor (max 2, 10s each). Live wires link you to each coil and the coils to each other; foes touching a wire are zapped and slowed. Wires go dead past 210 range.'},
+  {k:'RMB',n:'Tesla Coil',t:'electric',pow:'8 / tick',cd:1.6,d:'Launch a coil that flies to the cursor and anchors there, or where it hits a wall or a foe (10 dmg). Max 2, 10s each. Live wires link you to each coil and the coils to each other; foes touching a wire are zapped and slowed. Wires go dead past 210 range.'},
   {k:'E',n:'Overload',t:'electric',pow:58,cd:0,d:'Each coil, then you, bursts in a big stunning shockwave, one after another. With no coils out, two drop around you first. Coils are spent.'}]},
 {id:'prismoth',n:'Prismoth',types:['psychic','ice'],stats:{hp:60,dmg:94,pdef:56,mdef:84,int:92,spe:106},cls:'mag',xp:72,draw:drawPrismoth,states:['norm'],ammo:{max:12,rl:1.2,unit:'shards',verb:'REGROWING SCALES',d:'12 shards, then regrows its wing scales for 1.2s.'},
  role:'Trickster',blurb:'A moth whose wings grew into living crystal. Light bends wrong around it: shots ricochet, mirrors appear from nowhere, and suddenly there are three of it.',
  moves:[
-  {k:'LMB',n:'Prism Shard',t:'psychic',pow:'13 → 2×9',cd:.3,d:'A crystal shard. When it strikes a wall it refracts, splitting into two icy shards that fly off the bounce. Bank shots around cover.'},
+  {k:'LMB',n:'Prism Shard',t:'psychic',pow:'13 → 3×7',cd:.3,d:'A crystal shard. When it strikes a wall it refracts, splitting into three icy shards that fly off the bounce. Bank shots around cover.'},
   {k:'RMB',n:'Mirror Pane',t:'ice',pow:'—',cd:6,d:'Raise a crystal pane in front of you for 3.5s. Enemy shots that touch it are reflected back as yours. Your own shards passing through it split.'},
   {k:'E',n:'Kaleidoscope',t:'psychic',pow:'echo',cd:0,d:'Two mirror images flank you for 6s and copy every shard you fire. When they fade they shatter in chilling bursts.'}]},
 {id:'hexwyrmp',n:'Hexwyrm',types:['dragon','fire'],sz:1.5,stats:{hp:78,dmg:90,pdef:68,mdef:70,int:68,spe:54},cls:'mag',xp:90,draw:drawHexwyrm,states:['norm','immune'],ammo:{max:4,rl:1.6,unit:'hexfires',verb:'STOKING THE RIFT',d:'4 hexfires, then stokes the rift for 1.6s.'},
@@ -35,7 +35,7 @@ Object.assign(ANIM,{dunemaw:{k:'sniff',fps:3},ampoule:{k:'hover',fps:3,hover:2.6
 /* ---------- DUNEMAW ---------- */
 function burrowEnd(f){const u=f.unit;f.mode='norm';f.burT=0;u.cd[1]=6*cdM(u);if(!alive(f))return;
   nova(f,f.x,f.y-4,{r:38,pow:46,type:'ground',kb:240});G.shake=Math.max(G.shake,5);
-  fx(f.x,f.y-2,'#dcb46e',24,140,.5,2,40);fx(f.x,f.y-4,'#8a6234',12,90,.4,2);popup(f.x,f.y-34,'ERUPT!','#f6dca0',true);sfx('crack')}
+  fx(f.x,f.y-2,'#dcb46e',24,140,.5,2,40);fx(f.x,f.y-4,'#8a6234',12,90,.4,2);popup(f.x,f.y-34,'BREACH!','#f6dca0',true);sfx('crack')}
 function pitTouch(fi,t){if(t.mode==='burrow'||t.boss)return;const dx=fi.x-t.x,dy=fi.y-t.y,d=Math.hypot(dx,dy)||1;
   if(t.mode!=='turret'&&d>6){const pull=230*G.dt*(.45+.55*Math.min(1,d/fi.r));t.kvx+=dx/d*pull;t.kvy+=dy/d*pull}
   applySt(t,{slow:[.2,.35]});
@@ -48,12 +48,12 @@ function drawPit(fi){const k=Math.min(1,fi.life*1.5,(5-fi.life)*4+.2),r=fi.r;
 KIT.dunemaw={
   act(f,c){const u=f.unit;
     if(f.mode==='burrow'){if(c.r&&f.burAge>.3)burrowEnd(f);return}
-    if(c.r&&u.cd[1]<=0){f.mode='burrow';f.burT=BURROW_T;f.burAge=0;f.vx*=.5;f.vy*=.5;fx(f.x,f.y-2,'#dcb46e',18,90,.4,2,30);ring(f.x,f.y,16,'#b88a4a',.3,'nova');sfx('plant');return}
+    if(c.r&&u.cd[1]<=0){f.mode='burrow';f.burT=BURROW_T;f.burAge=0;f.finHit=[];f.vx*=.5;f.vy*=.5;fx(f.x,f.y-2,'#dcb46e',18,90,.4,2,30);ring(f.x,f.y,16,'#b88a4a',.3,'nova');sfx('plant');return}
     if(c.l&&u.cd[0]<=0&&u.rl<=0){if(u.ammo<=0)startReload(f);else{u.ammo--;u.cd[0]=.55;f.spitT=.15;
       for(let i=0;i<5;i++)shoot(f,c.aim+(i-2)*.13,{spd:290+i%2*30,pow:6,type:'ground',r:2,life:.32,jit:.05,kind:'grit',kb:22,st:{slow:[.6,.12]}});sfx('splash');if(u.ammo<=0)startReload(f)}}
     if(c.e&&u.ult>=100){u.ult=0;ult(f);const p=reach(f,c.tx,c.ty,200);G.fires.push({x:p.x,y:p.y,r:PIT_R,life:5,owner:f,seed:Math.random()*6,pit:1,atk:f.unit.dmg,lv:f.unit.lv});
       ring(p.x,p.y,PIT_R,'#dcb46e',.45,'nova');fx(p.x,p.y,'#b88a4a',30,160,.6,2,30);G.shake=Math.max(G.shake,4);sfx('boom')}},
-  move(f){if(f.mode==='burrow'){f.burT-=G.dt;f.burAge+=G.dt;if(Math.random()<.6)G.parts.push({x:f.x+(Math.random()-.5)*14,y:f.y+(Math.random()-.5)*4,vx:(Math.random()-.5)*30,vy:-20,life:.35,max:.35,col:Math.random()<.5?'#dcb46e':'#8a6234',sz:2});if(f.burT<=0)burrowEnd(f);return 1.4}return 1}};
+  move(f){if(f.mode==='burrow'){f.burT-=G.dt;f.burAge+=G.dt;for(const t of foes(f)){if(dist(f,t)<f.r+t.r+5&&!(f.finHit||[]).includes(t.unit)){(f.finHit=f.finHit||[]).push(t.unit);hit(f,t,12,'ground',{kb:90,ka:Math.atan2(t.y-f.y,t.x-f.x),st:{slow:[.6,.3]}});fx(t.x,t.y-4,'#f6dca0',10,90,.3,2,20);sfx('jab')}}if(Math.random()<.6)G.parts.push({x:f.x+(Math.random()-.5)*14,y:f.y+(Math.random()-.5)*4,vx:(Math.random()-.5)*30,vy:-20,life:.35,max:.35,col:Math.random()<.5?'#dcb46e':'#8a6234',sz:2});if(f.burT<=0)burrowEnd(f);return 1.4}return 1}};
 AIK.dunemaw=function(f,t,c,d,sight,dt){const ai=f.ai,u=f.unit,D=ai.d;
   if(f.mode==='burrow'){if(d<f.r+t.r+10&&f.burAge>.3)c.r=1;else if(f.burT<.35)c.r=1;return{pref:0,goto:{x:t.x,y:t.y}}}
   if(u.ult>=100&&sight&&d<190&&Math.random()<dt*D.agg*2.5)c.e=1;
@@ -64,8 +64,13 @@ AIK.dunemaw=function(f,t,c,d,sight,dt){const ai=f.ai,u=f.unit,D=ai.d;
 /* ---------- AMPOULE ---------- */
 function segDist(px_,py_,ax,ay,bx,by){const dx=bx-ax,dy=by-ay,L=dx*dx+dy*dy||1,k=clamp(((px_-ax)*dx+(py_-ay)*dy)/L,0,1);return Math.hypot(px_-(ax+dx*k),py_-(ay+dy*k))}
 function ampWires(f){const N=f.nodes||[],W=[];for(const n of N)W.push([f.x,f.y-6,n.x,n.y]);if(N.length===2)W.push([N[0].x,N[0].y,N[1].x,N[1].y]);return W.map(w=>({w,live:Math.hypot(w[2]-w[0],w[3]-w[1])<=WIRE_MAX}))}
-function ampTick(f){const N=f.nodes;if(!N||!N.length)return;for(const n of N)n.life-=G.dt;f.nodes=N.filter(n=>n.life>0);
-  for(const{w,live}of ampWires(f)){if(!live)continue;for(const t of foes(f)){if((t.wireCd||0)>G.t)continue;if(segDist(t.x,t.y-6,...w)<t.r+3){t.wireCd=G.t+.3;hit(f,t,9,'electric',{quiet:1,st:{slow:[.4,.3]},kb:0});fx(t.x,t.y-8,'#f8ec78',4,60,.2)}}}
+function coilFlyTick(f){const C=f.coilFly;if(!C||!C.length)return;
+  for(const k of C){const sp=Math.hypot(k.vx,k.vy)*G.dt,nx=k.x+k.vx*G.dt,ny=k.y+k.vy*G.dt;let land=Math.hypot(k.tx-k.x,k.ty-k.y)<=sp+1;
+    if(!land&&solidShot(nx,ny+10))land=1;if(!land)for(const t of foes(f))if(Math.hypot(t.x-nx,t.y-6-ny)<t.r+5){land=1;hit(f,t,10,'electric',{kb:60,ka:Math.atan2(k.vy,k.vx),st:{slow:[.5,.3]}});break}
+    if(land){k.done=1;dropCoil(f,k.x,k.y+6)}else{k.x=nx;k.y=ny;if(Math.random()<.5)G.parts.push({x:k.x,y:k.y,vx:0,vy:0,life:.2,max:.2,col:Math.random()<.5?'#f8ec78':'#8eb4f4',sz:1})}}
+  f.coilFly=C.filter(k=>!k.done)}
+function ampTick(f){coilFlyTick(f);const N=f.nodes;if(!N||!N.length)return;for(const n of N)n.life-=G.dt;f.nodes=N.filter(n=>n.life>0);
+  for(const{w,live}of ampWires(f)){if(!live)continue;for(const t of foes(f)){if((t.wireCd||0)>G.t)continue;if(segDist(t.x,t.y-6,...w)<t.r+3){t.wireCd=G.t+.3;hit(f,t,8,'electric',{quiet:1,st:{slow:[.4,.3]},kb:0});fx(t.x,t.y-8,'#f8ec78',4,60,.2)}}}
   // relays: own zaps that touch a coil fire an amplified bolt from it
   for(const p of G.proj){if(p.owner!==f||p.kind!=='zap'||p.relay)continue;for(const n of f.nodes){if(Math.hypot(p.x-n.x,p.y-n.y)<9){p.dead=1;const t=nearestFoe({x:n.x,y:n.y+6,side:f.side},230);
       ring(n.x,n.y,12,'#f8ec78',.25,'nova');fx(n.x,n.y,'#fffce0',8,90,.25);sfx('crack');
@@ -74,19 +79,21 @@ function dropCoil(f,x,y){f.nodes=(f.nodes||[]).concat([{x,y:y-6,life:10,ph:Math.
 KIT.ampoule={
   act(f,c){const u=f.unit;
     if(f.ovW>0)return;
-    if(c.r&&u.cd[1]<=0){const p=reach(f,c.tx,c.ty,COIL_REACH);if(!solidWalk(p.x,p.y)){u.cd[1]=1.5*cdM(u);dropCoil(f,p.x,p.y)}else if(f.side===0)popup(f.x,f.y-34,'CAN\'T FLOAT THERE','#f0f0f0',true)}
+    if(c.r&&u.cd[1]<=0){const p=reach(f,c.tx,c.ty,COIL_REACH),a=Math.atan2(p.y-f.y,p.x-f.x),sx=f.x+Math.cos(a)*8,sy=f.y-6+Math.sin(a)*8;u.cd[1]=1.6*cdM(u);f.slamT=.15;
+      (f.coilFly=f.coilFly||[]).push({x:sx,y:sy,vx:Math.cos(a)*230,vy:Math.sin(a)*230,tx:p.x,ty:p.y-6});fx(sx,sy,'#fffce0',6,60,.2);sfx('dash')}
     if(c.l&&u.cd[0]<=0&&u.rl<=0){if(u.ammo<=0)startReload(f);else{u.ammo--;u.cd[0]=.28;f.slamT=.12;shoot(f,c.aim,{spd:380,pow:13,type:'electric',r:2.5,life:.6,kind:'zap',kb:25});sfx('dart');if(u.ammo<=0)startReload(f)}}
     if(c.e&&u.ult>=100){u.ult=0;ult(f);if(!(f.nodes&&f.nodes.length))for(const o of[-1.2,1.2]){const x=f.x+Math.cos(c.aim+o)*44,y=f.y+Math.sin(c.aim+o)*44;if(!solidWalk(x,y))dropCoil(f,x,y)}
-      const pts=(f.nodes||[]).map(n=>({x:n.x,y:n.y+6}));f.nodes=[];pts.push(null);f.ovW=.25+pts.length*.22;f.slamT=f.ovW;
+      const pts=(f.nodes||[]).map(n=>({x:n.x,y:n.y+6}));f.nodes=[];f.coilFly=[];pts.push(null);f.ovW=.25+pts.length*.22;f.slamT=f.ovW;
       pts.forEach((p,i)=>{if(p)ring(p.x,p.y,52,'#f8d030',.3+i*.22,'tele',{own:f});later(f,.3+i*.22,()=>{const q=p||{x:f.x,y:f.y};nova(f,q.x,q.y-4,{r:52,pow:58,type:'electric',kb:170,st:{stun:.5}});fx(q.x,q.y-6,'#fffce0',16,200,.3);G.shake=Math.max(G.shake,5)})});sfx('charge')}},
   move(f){f.ovW=Math.max(0,(f.ovW||0)-G.dt);ampTick(f);return f.ovW>0?.3:1}};
 AIK.ampoule=function(f,t,c,d,sight,dt){const ai=f.ai,u=f.unit,D=ai.d,N=f.nodes||[];
   if(u.ult>=100&&(d<60||N.some(n=>Math.hypot(n.x-t.x,n.y+6-t.y)<56))&&Math.random()<dt*D.agg*4)c.e=1;
-  if(u.cd[1]<=0&&N.length<COIL_MAX&&d<300&&Math.random()<dt*D.agg*3){// hang coils across the gap so the wire sits between us
+  if(u.cd[1]<=0&&N.length+(f.coilFly||[]).length<COIL_MAX&&d<300&&Math.random()<dt*D.agg*3){// hang coils across the gap so the wire sits between us
     const a=Math.atan2(t.y-f.y,t.x-f.x)+(N.length?-1:1)*(.7+Math.random()*.5),k=Math.min(COIL_REACH,d*.7);c.r=1;c.tx=f.x+Math.cos(a)*k;c.ty=f.y+Math.sin(a)*k;c.aim=a;return{pref:150}}
   if(sight&&d<250&&u.cd[0]<=0&&ai.react<=0){c.l=1;ai.react=D.react*.4}
   return{pref:150,aimTarget:1}};
 function drawWires(f){const N=f.nodes||[];
+  for(const k of f.coilFly||[]){ctx.globalAlpha=.35;pline(f.x,f.y-6,k.x,k.y,1,'#8eb4f4');ctx.globalAlpha=1;pcirc(k.x,k.y,4,'#1a1c50');pcirc(k.x,k.y,3,'#5a78d8');pcirc(k.x,k.y,1.6,'#f8ec78');for(let i=0;i<3;i++){const a=G.t*14+i*2.09;ctx.fillStyle='#fffce0';ctx.fillRect(Math.round(k.x+Math.cos(a)*6),Math.round(k.y+Math.sin(a)*3),1,1)}}
   for(const{w,live}of ampWires(f)){const[x0,y0,x1,y1]=w,L=Math.hypot(x1-x0,y1-y0)||1,n=Math.ceil(L/5),nx=-(y1-y0)/L,ny=(x1-x0)/L;let pv=[x0,y0];
     ctx.globalAlpha=live?.95:.25;for(let i=1;i<=n;i++){const q=i/n,j=i<n?(Math.random()-.5)*(live?5:1.5):0,x=x0+(x1-x0)*q+nx*j,y=y0+(y1-y0)*q+ny*j;pline(pv[0],pv[1],x,y,1,live?(i%2?'#f8ec78':'#ffffff'):'#8eb4f4');pv=[x,y]}}
   ctx.globalAlpha=1;
@@ -95,7 +102,7 @@ function drawWires(f){const N=f.nodes||[];
     for(let i=0;i<3;i++){const a=G.t*4+i*2.09+n.ph;ctx.fillStyle='#fffce0';ctx.fillRect(Math.round(n.x+Math.cos(a)*6),Math.round(y+Math.sin(a)*3),1,1)}}}
 
 /* ---------- PRISMOTH ---------- */
-function prismSplit(p,a,x,y){const f=p.owner;if(!f||!f.unit)return;for(const o of[-.34,.34])G.proj.push({x,y,vx:Math.cos(a+o)*310,vy:Math.sin(a+o)*310,r:2,pow:9,type:'ice',owner:f,unit:p.unit,life:.45,kind:'prism2',kb:30,st:{slow:[.5,.2]},hit:new Set(p.hit),t:0});
+function prismSplit(p,a,x,y){const f=p.owner;if(!f||!f.unit)return;for(const o of[-.38,0,.38])G.proj.push({x,y,vx:Math.cos(a+o)*310,vy:Math.sin(a+o)*310,r:2,pow:7,type:'ice',owner:f,unit:p.unit,life:.45,kind:'prism2',kb:30,st:{slow:[.5,.2]},hit:new Set(p.hit),t:0});
   fx(x,y,'#c6ecff',8,80,.25);ring(x,y,7,'#ffffff',.18,'nova');sfx('tick')}
 // wall hit: reflect the shard off the face it struck and split it
 function refract(p){if(p.kind!=='prism'||p.refr||!solidShot(p.x,p.y+4))return false;p.refr=1;const dt=G.dt||1/60,bx=p.x-p.vx*dt,by=p.y-p.vy*dt;

@@ -223,7 +223,7 @@ function hit(src,tgt,pow,type,o={}){
   return d}
 function hurtPod(p,d){p.hp-=d;p.hurt=.1;fx(p.x,p.y-6,'#ee5c98',4,50,.3);if(p.hp<=0)p.dead=1}
 function faint(t,src){if(G.route&&(t.wild||t.rtrainer)&&src&&src.side===0)routeXP(t);if(G.kos&&t.side===1&&t.unit.hp>-1e6)G.kos.push({id:t.unit.id,lv:t.unit.lv,used:[...G.f[0].used]});t.unit.hp=0;t.faintT=1.3;t.dash=null;t.channel=0;t.root=0;src.kos++;popup(t.x,t.y-38,t.unit.m.n.toUpperCase()+' FAINTED!','#f85858',true);fx(t.x,t.y-8,'#ffffff',24,90,.7);G.shake=6;G.hitstop=.12;sfx('ko');endModes(t)}
-function endModes(f){f.nodes=null;f.mirror=null;f.decoys=null;f.kalT=0;f.burT=0;f.immT=0;f.link=null;f.mom=0;f.veilT=0;f.frenzyT=0;f.rushT=0;f.mode='norm';f.absorbed=0;f.stream=null;f.homerT=0;G.balls=G.balls.filter(b=>b.owner!==f)}
+function endModes(f){f.nodes=null;f.coilFly=null;f.finHit=null;f.mirror=null;f.decoys=null;f.kalT=0;f.burT=0;f.immT=0;f.link=null;f.mom=0;f.veilT=0;f.frenzyT=0;f.rushT=0;f.mode='norm';f.absorbed=0;f.stream=null;f.homerT=0;G.balls=G.balls.filter(b=>b.owner!==f)}
 function resetTransient(f){f.st={slowT:0,slowA:0,stun:0,stunImm:0,burn:0};f.chargeT=0;f.charging=0;f.channel=0;f.root=0;f.dash=null;f.kvx=f.kvy=0;f.seeds=0;endModes(f)}
 function matchScore(u,v){let off=0,def=0;for(const mv of u.m.moves)off=Math.max(off,eff(mv.t,v.m.types)*(u.m.types.includes(mv.t)?1.2:1));for(const mv of v.m.moves)def=Math.max(def,eff(mv.t,u.m.types)*(v.m.types.includes(mv.t)?1.2:1));return off-def+u.hp/u.max*.6}
 function bringIn(f,i){f.idx=i;f.used.add(i);f.unit=f.team[i];resetTransient(f);f.invuln=1;ring(f.x,f.y-6,16,TC[f.unit.m.types[0]],.35,'nova');fx(f.x,f.y-8,'#ffffff',14,60,.4);sfx('swap')}
