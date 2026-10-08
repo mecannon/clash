@@ -252,6 +252,10 @@ h1,h2,h3{margin:0;font-weight:800;text-wrap:balance}
 .sumst{display:grid;grid-template-columns:auto 1fr auto;gap:.22em .6em;align-items:center;font-size:.72em;font-weight:800;background:#fff;border:.13em solid var(--ink);border-radius:.55em;padding:.55em .7em}
 .sumst span{color:var(--mute);letter-spacing:.05em}.sumst i{height:.6em;background:var(--trough);border-radius:.3em;overflow:hidden}.sumst i b{display:block;height:100%;border-radius:.3em}.sumst em{font-style:normal;text-align:right;font-variant-numeric:tabular-nums;min-width:2.2em}
 .sumam{font-size:.72em;background:var(--panel2);border-radius:.45em;padding:.45em .6em;color:var(--ink2)}.sumam b{background:var(--ink);color:var(--gold);padding:0 .4em;border-radius:.2em;margin-right:.3em;font-size:.9em}
+.ldv{background:var(--panel2);border-radius:.5em;padding:.5em .55em;display:flex;flex-direction:column;gap:.35em}.ldh{display:flex;flex-wrap:wrap;gap:.2em .6em;align-items:baseline}.ldh b{font-size:.78em;font-weight:900}.ldh span{font-size:.66em;color:var(--ink2)}
+.ldrow{display:flex;gap:.35em;align-items:stretch}.ldrow .mk{flex:none;align-self:center;font-weight:900;font-size:.66em;background:var(--ink);color:#fff;padding:.25em .4em;border-radius:.3em;min-width:3.6em;text-align:center}
+.ldrow button{flex:1 1 0;min-width:0;display:flex;flex-wrap:wrap;align-items:center;gap:.2em .35em;text-align:left;font:inherit;font-size:.7em;background:#fff;border:.15em solid var(--ink);border-radius:.45em;padding:.3em .45em;cursor:pointer;opacity:.62}
+.ldrow button b{font-weight:900}.ldrow button small{width:100%;font-size:.8em;color:var(--ink2)}.ldrow button.on{opacity:1;background:#fff6d0;box-shadow:0 0 0 .15em var(--gold)}.ldrow button:hover{opacity:1}
 .summv{display:flex;flex-direction:column;gap:.4em}.mvrow{display:flex;gap:.55em;background:#fff;border:.13em solid var(--ink);border-radius:.5em;padding:.45em .55em}
 .mvrow .mk{flex:none;align-self:flex-start;font-weight:900;font-size:.7em;background:var(--ink);color:#fff;padding:.25em .45em;border-radius:.3em;min-width:2.6em;text-align:center}
 .mvh{display:flex;align-items:center;gap:.4em;flex-wrap:wrap;font-size:.8em}.mvh b{font-weight:900}.mvh .ty{font-size:.78em}.mvh span:not(.ty){font-size:.78em;font-weight:800;color:var(--mute);background:var(--panel2);padding:.05em .4em;border-radius:.25em}
@@ -2262,9 +2266,9 @@ const K={},M={sx:240,sy:135,x:0,y:0,l:false,lpAt:-9,rAt:-9};
 const DIFF={easy:{react:1.2,err:.6,agg:.22,lead:0,dodge:0,idle:.45,spd:.75,swap:0,turn:1.6},normal:{react:.55,err:.26,agg:.4,lead:.3,dodge:.25,idle:0,spd:1,swap:0,turn:3.2},hard:{react:.24,err:.1,agg:.9,lead:.75,dodge:.65,idle:0,spd:1,swap:1,turn:7}};
 const SPAWN=[{x:30*16+8,y:27*16+8},{x:50*16+8,y:23*16+8}];
 function rollHt(){return Math.round((.9+Math.random()*.2)*100)/100}
-function mkUnit(id,L=50,hp,ht){const m=MON[id],st=calcStats(m,L);return Object.assign({m,id,lv:L,cd:[0,0],ult:0,ammo:m.ammo.max,rl:0,ht:ht||rollHt()},st,{hp:hp==null?st.max:Math.min(st.max,hp)})}
+function mkUnit(id,L=50,hp,ht,load){const m=loadMon(id,load),st=calcStats(m,L);return Object.assign({m,id,lv:L,cd:[0,0],ult:0,ammo:m.ammo.max,rl:0,ht:ht||rollHt()},st,{hp:hp==null?st.max:Math.min(st.max,hp)})}
 function mkFighter(side,ids,diff){
-  return{side,team:ids.map(x=>typeof x==='string'?mkUnit(x):mkUnit(x.id,x.lv,x.hp,x.ht)),idx:0,unit:null,used:new Set([0]),x:(SPAWN[side]||SPAWN[1]).x,y:(SPAWN[side]||SPAWN[1]).y,vx:0,vy:0,kvx:0,kvy:0,r:7,aim:side?PI:0,dir:side?'left':'right',
+  return{side,team:ids.map(x=>typeof x==='string'?mkUnit(x):mkUnit(x.id,x.lv,x.hp,x.ht,x.load)),idx:0,unit:null,used:new Set([0]),x:(SPAWN[side]||SPAWN[1]).x,y:(SPAWN[side]||SPAWN[1]).y,vx:0,vy:0,kvx:0,kvy:0,r:7,aim:side?PI:0,dir:side?'left':'right',
     st:{slowT:0,slowA:0,stun:0,stunImm:0,burn:0},invuln:1,channel:0,root:0,dash:null,hurt:0,swapCd:0,faintT:0,effCd:0,walk:0,
     mode:'norm',absorbed:0,guardT:0,jab:0,punchT:0,swingT:0,seeds:0,homerT:0,stream:null,
     dealt:0,kos:0,ai:side?{d:DIFF[diff],react:.5,strT:0,str:1,think:1,seen:null,stuck:0,lastX:0,lastY:0,detour:0,detourA:0,modeT:0}:null};
@@ -2885,7 +2889,7 @@ function fighterOver(f,sy){
   if(f.unit.ult>=100&&!f.wild){ctx.fillStyle=Math.floor(G.t*6)%2?'#ffffff':'#f8d030';ctx.fillRect(Math.round(f.x)+w/2+2,y0,2,2)}
   if(f.wild){ptext('Lv'+f.unit.lv,f.x,y0-8,f.unit.id==='scrattle'?'#f8e0c0':'#ffc0a8',6);if(f.wild.alert>0){const ay=y0-18-(f.wild.alert>.6?(f.wild.alert-.6)*20:0);ctx.fillStyle='#282830';ctx.fillRect(Math.round(f.x)-3,Math.round(ay),7,9);ctx.fillStyle='#ffffff';ctx.fillRect(Math.round(f.x)-2,Math.round(ay)+1,5,7);ctx.fillStyle='#f83838';ctx.fillRect(Math.round(f.x),Math.round(ay)+2,1,3);ctx.fillRect(Math.round(f.x),Math.round(ay)+6,1,1)}}
 }
-function drawGear(f,sx,sy,z){const id=f.unit.m.id,a=f.aim,ca=Math.cos(a),sa=Math.sin(a);if(GEAR2[id])GEAR2[id](f,a,ca,sa);
+function drawGear(f,sx,sy,z,idO){const id=idO||f.unit.m.id,a=f.aim,ca=Math.cos(a),sa=Math.sin(a);if(!idO&&f.unit.m.load)for(const s of new Set([f.unit.m.load.l,f.unit.m.load.r,f.unit.m.load.e]))if(s!==id)drawGear(f,sx,sy,z,s);if(GEAR2[id])GEAR2[id](f,a,ca,sa);
   if(id==='voltusk'||id==='mesmamba'||id==='phantern')drawGearNew(f,id,a,ca,sa);
   if(id==='cindercub'&&f.charging){const k=f.chargeT/1.2,r=2+5*k+Math.sin(G.t*30)*.7,x=f.x+ca*10,y=f.y-12+sa*6;pcirc(x,y,r+1,'#5a1000');pcirc(x,y,r,'#f47a18');pcirc(x,y,r*.6,'#f8c040');pcirc(x-1,y-1,Math.max(.5,r*.3),'#fff6c0');if(k>=1&&Math.floor(G.t*10)%2)pring(x,y,r+3,'#ffffff',2)}
   if(id==='scrattle'&&f.windT>0){const k=1-f.windT/.45;for(let i=0;i<10;i++){const aa=-k*6+i*.25;ctx.fillStyle=i===9?'#ffffff':'#d8809c';ctx.fillRect(Math.round(f.x+Math.cos(aa)*(8+i)),Math.round(f.y-4+Math.sin(aa)*(5+i*.6)),2,2)}}
@@ -3062,12 +3066,12 @@ function buildHud(){
   h.appendChild(bar);
   const hint=document.createElement('div');hint.className='gba hint';hint.textContent='WASD move · Mouse aim · LMB / RMB · R ultimate · F reload · 1 2 3 swap · Esc pause';h.appendChild(hint);HUD.hint=hint;
 }
-function curMoves(f){const m=f.unit.m,mv=m.moves,by=n=>mv.find(x=>x.n===n);
+function curMoves(f){const m=f.unit.m,mv=m.moves,by=n=>mv.find(x=>x.n===n);if(m.load){const L=mv.filter(x=>x.k==='LMB'),R=mv.filter(x=>x.k==='RMB');return[(f.mode==='turret'&&L.find(x=>x.mode==='turret'))||(f.mode==='guard'&&L.find(x=>x.mode==='guard'))||L.find(x=>!x.mode)||L[0],(f.mode==='roll'&&R.find(x=>x.mode==='roll'))||R.find(x=>!x.mode)||R[0],mv.find(x=>x.k==='E')]}
   switch(m.id){case'bulwhale':return[f.mode==='turret'?by('Water Gun'):by('Water Blob'),by('Turret Mode'),by('Hydro Cannon')];
     case'fistinel':return[f.mode==='guard'?by('Counter Blast'):by('Flurry Jab'),by('Guard Up'),by('Flying Kick')];
     case'voltusk':return[by('Tusk Spark'),f.mode==='roll'?by('Discharge'):by('Boulder Roll'),by('Fault Spark')];
     default:return[mv[0],mv[1],mv[2]]}}
-function special(f){switch(f.unit.m.id){
+function special(f,idO){if(!idO&&f.unit.m.load)return special(f,f.unit.m.load.r);switch(idO||f.unit.m.id){
   case'bulwhale':return[(f.mode==='turret'?'TURRET':'WALKING')+' · TANK '+Math.round(f.unit.ammo),f.unit.ammo/100];
   case'fistinel':return[f.mode==='guard'?'GUARD · '+Math.round(f.absorbed)+' stored':'READY',f.mode==='guard'?Math.min(1,f.absorbed/170):0];
   case'frostbunt':{const b=G.balls.find(b=>b.owner===f);return[f.homerT>0?'HOMER '+f.homerT.toFixed(1)+'s':b?(b.live?'BALL IN FLIGHT':'BALL LV '+b.charge+'/'+BALL_MAX+' · '+Math.round(ballPow(b))+' POW'):'NO BALL',f.homerT>0?f.homerT/7:b?b.charge/BALL_MAX:0]}
@@ -3079,7 +3083,7 @@ function special(f){switch(f.unit.m.id){
   case'voltusk':return[f.mode==='roll'?'ROLLING · '+Math.round((f.mom||0)*100)+'% MOMENTUM':f.faultW>0?'QUAKING...':f.unit.cd[1]>0?'ROLL '+f.unit.cd[1].toFixed(1)+'s':'ROLL READY',f.mode==='roll'?(f.mom||0):1-f.unit.cd[1]/5];
   case'mesmamba':{const n=G.fires.filter(q=>q.tox&&q.owner===f).length;return[f.link?'LINKED · CRUSH IN '+Math.max(0,LINK_T-f.link.time).toFixed(1)+'s':(f.unit.cd[1]>0?'GAZE '+f.unit.cd[1].toFixed(1)+'s':'GAZE READY')+' · POOLS '+n,f.link?f.link.time/LINK_T:1-f.unit.cd[1]/8]}
   case'phantern':return[f.mode==='veil'?'VEILED '+f.veilT.toFixed(1)+'s':f.unit.cd[1]>0?'HOOK '+f.unit.cd[1].toFixed(1)+'s':'HOOK READY',f.mode==='veil'?f.veilT/4.5:1-f.unit.cd[1]/4.5]
-  default:return SPECIAL2[f.unit.m.id]?SPECIAL2[f.unit.m.id](f):['',0]}}
+  default:return SPECIAL2[idO||f.unit.m.id]?SPECIAL2[idO||f.unit.m.id](f):['',0]}}
 function updHud(){
   const FOC=G.route?(G.focus&&alive(G.focus)&&dist(G.focus,G.f[0])<420?G.focus:null):G.f[1];
   [G.f[0],FOC].forEach((f,si)=>{const H_=HUD.side[si];H_.el.hidden=!f;if(!f)return;const u=f.unit;if(!u)return;
@@ -3455,7 +3459,7 @@ AIK.dreadwhale=function(f,t,c,d,sight,dt){const ai=f.ai,u=f.unit,D=ai.d;
 /* ---------- VERDRYAD ---------- */
 const LASH_L=72;
 function thornLash(f,a){const ca=Math.cos(a),sa=Math.sin(a),x0=f.x,y0=f.y-6,x1=x0+ca*rayLen(x0,y0+6,a,LASH_L),y1=y0+sa*rayLen(x0,y0+6,a,LASH_L);f.lashT=.16;f.lashA=a;f.lashL=Math.hypot(x1-x0,y1-y0);
-  for(const t of foes(f)){if(segDist(t.x,t.y-6,x0,y0,x1,y1)>t.r+5)continue;const tip=Math.hypot(t.x-x0,t.y-6-y0)>f.lashL*.7;hit(f,t,tip?38:28,'grass',{kb:tip?140:60,ka:a,quiet:!tip});if(tip)fx(t.x,t.y-8,'#a8e070',8,90,.3)}
+  for(const t of foes(f)){if(segDist(t.x,t.y-6,x0,y0,x1,y1)>t.r+5)continue;const tip=Math.hypot(t.x-x0,t.y-6-y0)>f.lashL*.7;hit(f,t,tip?38:28,'grass',{kb:tip?140:60,ka:a,quiet:!tip});f.seeds=Math.min(8,(f.seeds||0)+1);if(tip)fx(t.x,t.y-8,'#a8e070',8,90,.3)}
   for(const p of G.pods)if(p.owner!==f&&segDist(p.x,p.y-6,x0,y0,x1,y1)<8)hurtPod(p,24*f.unit.dmg/f.unit.mdef*LF(f.unit.lv)*1.2);sfx('swing')}
 FIRE2.bloom={touch(fi,t){applySt(t,{slow:[.25,.3]});if((t.bloomCd||0)<=G.t){t.bloomCd=G.t+.7;hit(fi.owner,t,22,'fairy',{quiet:1,atk:fi.atk,lv:fi.lv,cls:'mag',stabTypes:['grass','fairy']});fx(t.x,t.y-8,'#ffa8cc',6,60,.3)}},
   draw(fi){const k=Math.min(1,fi.life*1.5,(6-fi.life)*4+.2),r=fi.r,sp=G.t*.3+fi.seed;ctx.globalAlpha=.3*k;pell(fi.x,fi.y,r,r*.55,'#62b84a');
@@ -3486,11 +3490,35 @@ async function evolveScene(c){const E=MON[c.id]&&MON[c.id].evo;if(!E||c.lv<E.lv)
   sfx('charge');await say('What? '+om.n.toUpperCase()+' is evolving!');sfx('ult');
   c.id=E.to;c.hp=null;showLvl(nm,c.lv,calcStats(om,c.lv),calcStats(nm,c.lv));
   await say('Congratulations! Your '+om.n.toUpperCase()+' evolved into '+nm.n.toUpperCase()+'!');
-  await say(nm.n.toUpperCase()+' learned '+nm.moves.map(m=>m.n.toUpperCase()).join(', ')+'!');hideLvl();if(typeof saveGame==='function')saveGame()}
+  await say(nm.n.toUpperCase()+' learned '+nm.moves.filter(m=>m.k!=='PAS').map(m=>m.n.toUpperCase()).join(', ')+'!');hideLvl();
+  await say('It still remembers its '+om.n.toUpperCase()+' moves! Mix and match them anytime in TEAM ▸ SUMMARY ▸ MOVE LOADOUT.');if(typeof saveGame==='function')saveGame()}
 function evolveLive(P,u,c){const E=MON[c.id]&&MON[c.id].evo;if(!E||c.lv<E.lv)return;const om=u.m,nm=MON[E.to],k=u.hp/u.max;
-  c.id=E.to;Object.assign(u,{m:nm,id:E.to},calcStats(nm,c.lv));u.hp=Math.round(u.max*Math.max(k,.6));u.ammo=nm.ammo.max;u.rl=0;u.cd=[0,0];resetTransient(P);P.invuln=Math.max(P.invuln,1.2);
+  c.id=E.to;delete c.load;Object.assign(u,{m:nm,id:E.to},calcStats(nm,c.lv));u.hp=Math.round(u.max*Math.max(k,.6));u.ammo=nm.ammo.max;u.rl=0;u.cd=[0,0];resetTransient(P);P.invuln=Math.max(P.invuln,1.2);
   G.banner={txt:'EVOLVED!',who:nm.n,col:TC[nm.types[0]],t:2,side:0};G.flash=Math.max(G.flash,.3);ring(P.x,P.y-10,34,'#ffffff',.6,'nova');fx(P.x,P.y-12,'#ffffff',40,160,.7,2,40);fx(P.x,P.y-12,TC[nm.types[0]],24,120,.6,2,30);sfx('ult');
-  if(typeof toast==='function')toast(om.n.toUpperCase()+' evolved into '+nm.n.toUpperCase()+'!');HUD.side[0].last=null;buildHud&&buildHud()}
+  if(typeof toast==='function')toast(om.n.toUpperCase()+' evolved into '+nm.n.toUpperCase()+'! Old moves can be swapped back in TEAM ▸ SUMMARY.');HUD.side[0].last=null;buildHud&&buildHud()}
+
+/* ================= MOVE LOADOUTS =================
+   A party mon can fill each slot (l = LMB, r = RMB, e = ultimate) from any species it "knows": itself, every earlier
+   form in its line, and anything in c.learned (reserved for TMs). Each slot runs through its source species' own kit,
+   so borrowed moves behave exactly like the original. Ammo follows the LMB source. */
+MON.calderursa.evoFrom='cindercub';MON.dreadwhale.evoFrom='bulwhale';MON.verdryad.evoFrom='verdivy';
+function moveSrcs(c){const out=[c.id];let m=MON[c.id];while(m&&m.evoFrom&&!out.includes(m.evoFrom)){out.push(m.evoFrom);m=MON[m.evoFrom]}for(const s of c.learned||[])if(MON[s]&&!out.includes(s))out.push(s);return out}
+const LOADC={};
+function loadMon(id,load){const M=MON[id];if(!M||!load)return M;const L={l:load.l||id,r:load.r||id,e:load.e||id};if(L.l===id&&L.r===id&&L.e===id)return M;
+  const key=id+'|'+L.l+'|'+L.r+'|'+L.e;if(LOADC[key])return LOADC[key];const m=Object.create(M),pick=(s,k)=>MON[s].moves.filter(x=>x.k===k);
+  m.load=L;m.ammo=MON[L.l].ammo;m.moves=[...pick(L.l,'LMB'),...pick(L.r,'RMB'),...pick(L.e,'E'),...M.moves.filter(x=>x.k!=='LMB'&&x.k!=='RMB'&&x.k!=='E')];return LOADC[key]=m}
+// wrap every kit so a loadout unit dispatches each slot to its source kit
+{const K0=Object.assign({},KIT);for(const id in K0){const K=K0[id];KIT[id]={
+  act(f,c){const L=f.unit.m.load;if(!L)return K.act(f,c);for(const s of new Set([L.l,L.r,L.e])){const S=K0[s];if(!S)continue;const cc=Object.assign({},c);
+    if(L.l!==s){cc.l=0;cc.lp=0}if(L.r!==s){cc.r=0;cc.rHeld=0}if(L.e!==s)cc.e=0;S.act(f,cc)}},
+  move(f){const L=f.unit.m.load;if(!L)return K.move(f);let k=1;for(const s of new Set([L.l,L.r,L.e,f.unit.m.id]))if(K0[s])k*=K0[s].move(f);return k}}}}
+function setLoad(i,slot,src){const c=OW.party[i];if(!c||!moveSrcs(c).includes(src))return;c.load=Object.assign({l:c.id,r:c.id,e:c.id},c.load||{});c.load[slot]=src;
+  if(c.load.l===c.id&&c.load.r===c.id&&c.load.e===c.id)delete c.load;
+  if(APP.mode==='route'&&G&&G.f[0]&&G.f[0].team[i]){const P=G.f[0],u=P.team[i];u.m=loadMon(c.id,c.load);u.ammo=u.m.ammo.max;u.rl=0;if(P.idx===i)resetTransient(P);buildHud()}
+  if(typeof saveGame==='function')saveGame();const mv=MON[src].moves.find(x=>x.k===(slot==='l'?'LMB':slot==='r'?'RMB':'E'));toast(MON[c.id].n.toUpperCase()+' will use '+mv.n.toUpperCase()+'!')}
+function loadoutHTML(i){const c=OW.party[i],S=moveSrcs(c);if(S.length<2)return'';const L=Object.assign({l:c.id,r:c.id,e:c.id},c.load||{});
+  const row=(slot,k,lab)=>`<div class="ldrow"><span class="mk">${lab}</span>${S.map(s=>{const mv=MON[s].moves.find(x=>x.k===k);return mv?`<button type="button" data-a="load" data-i="${i}" data-s="${slot}" data-v="${s}" class="${L[slot]===s?'on':''}"><b>${mv.n.toUpperCase()}</b>${chips([mv.t])}<small>${MON[s].n.toUpperCase()}</small></button>`:''}).join('')}</div>`;
+  return`<div class="ldv"><div class="ldh"><b>MOVE LOADOUT</b><span>Mix moves from its whole line. Ammo follows the LMB move.</span></div>${row('l','LMB','LMB')}${row('r','RMB','RMB')}${row('e','E','R · ULT')}</div>`}
 
 
 /* ================= STORY / OVERWORLD ================= */
@@ -3743,7 +3771,7 @@ function trainerBattle(o){return new Promise(async res=>{const m=OW.map,p=OW.p;
   MW=w;MH=h;WW=w*16;WH=h*16;MINI=null;
   MAP={ground:sub('ground'),obj:sub('obj'),walk:sub('walk'),shot:sub('shot')};softTrees(MAP);
   WORLD=m.cvs.map(cv=>{const c=mkCanvas(WW,WH),x=c.getContext('2d');x.drawImage(cv,-x0*16,-y0*16);if(m.habitats)for(const hb of m.habitats)drawHabitatLive(x,hb,(hb.x-x0)*16,(hb.y-y0)*16,0);return c});
-  sel.diff=o.diff;newGame(OW.party.map(c=>({id:c.id,lv:c.lv,hp:c.hp,ht:c.ht})),o.enemy.map(e=>Object.assign({},e,{lv:encLv(e.lv,o.gym?'b':'t')})),o.diff);
+  sel.diff=o.diff;newGame(OW.party.map(c=>({id:c.id,lv:c.lv,hp:c.hp,ht:c.ht,load:c.load})),o.enemy.map(e=>Object.assign({},e,{lv:encLv(e.lv,o.gym?'b':'t')})),o.diff);
   const P=G.f[0],Q=G.f[1];P.x=p.px-x0*16;P.y=p.py-y0*16-2;Q.x=(o.npc.x-x0)*16+8;Q.y=(o.npc.y-y0)*16+12;P.aim=Math.atan2(Q.y-P.y,Q.x-P.x);Q.aim=P.aim+PI;
   G.kos=[];G.story={name:o.name,x0,y0,onEnd:async w=>{APP.mode='ow';$('hud').hidden=true;OW.last=performance.now();
     G.f[0].team.forEach((u,i)=>{if(OW.party[i])OW.party[i].hp=Math.max(1,Math.round(u.hp))});
@@ -3936,8 +3964,8 @@ function summaryHTML(i){const c=OW.party[i],m=MON[c.id],st=calcStats(m,c.lv),hp=
   <div class="sumh"><canvas class="px"></canvas><div><b>${m.n.toUpperCase()} <small>Lv${c.lv}</small></b><div class="tys">${chips(m.types)}${clsChip(m)}</div><div class="sumr"><span>${m.role.toUpperCase()}</span><span>HEIGHT ${htTxt(c)}</span></div><p>${m.blurb}</p></div></div>
   ${hpBar(hp,st.max)}<div class="xpb"><span>EXP</span><i><b style="width:${pct}%"></b></i><span>${c.xp} · ${nxt-c.xp} to Lv${c.lv+1}</span></div>
   <div class="sumst">${rows.map(([l,k,v])=>`<span>${l}</span><i><b style="width:${Math.min(100,m.stats[k==='max'?'hp':k]/1.3)}%;background:${(STAT_COL[k==='max'?'hp':k]||['#3f86e0'])[0]}"></b></i><em>${v}</em>`).join('')}</div>
-  <div class="sumam"><b>${m.ammo.unit.toUpperCase()}</b> ${m.ammo.d}</div>
-  <div class="summv">${m.moves.map(mv=>`<div class="mvrow"><span class="mk">${mv.k==='E'?'R · ULT':mv.k}</span><div><div class="mvh"><b>${mv.n.toUpperCase()}</b>${chips([mv.t])}<span>POW ${mv.pow}</span><span>${mv.cd?'CD '+mv.cd+'s':mv.k==='E'?'ULT':'—'}</span></div><p>${mv.d}</p></div></div>`).join('')}</div></div>`}
+  <div class="sumam"><b>${loadMon(c.id,c.load).ammo.unit.toUpperCase()}</b> ${loadMon(c.id,c.load).ammo.d}</div>
+  ${loadoutHTML(i)}<div class="summv">${loadMon(c.id,c.load).moves.map(mv=>`<div class="mvrow"><span class="mk">${mv.k==='E'?'R · ULT':mv.k}</span><div><div class="mvh"><b>${mv.n.toUpperCase()}</b>${chips([mv.t])}<span>POW ${mv.pow}</span><span>${mv.cd?'CD '+mv.cd+'s':mv.k==='E'?'ULT':'—'}</span></div><p>${mv.d}</p></div></div>`).join('')}</div></div>`}
 function bagHTML(){const I=OW.items||{};return`<div class="bagv"><div class="bagh"><b>BAG</b><span>$${OW.money||0}</span></div>`+Object.keys(ITEMS).map(k=>{const it=ITEMS[k],n=I[k]||0;return`<div class="bagrow"><i style="background:${it.col}"></i><div><b>${it.n} <small>×${n}</small></b><p>${it.d}</p>${k==='potion'&&n>0?`<div class="pmbtns">${OW.party.map((c,j)=>`<button type="button" data-a="potion" data-i="${j}">USE ON ${MON[c.id].n.toUpperCase()} (${curHp(j)}/${calcStats(MON[c.id],c.lv).max})</button>`).join('')}</div>`:''}</div></div>`}).join('')+`</div>`}
 function cardHTML(){return`<div class="cardv"><div class="cardh"><b>TRAINER CARD</b><span>FERNBROOK FIELD OFFICE</span></div><div class="cardb"><canvas class="px"></canvas><dl><dt>NAME</dt><dd>${OW.name}</dd><dt>MONEY</dt><dd>$${OW.money||0}</dd><dt>TEAM</dt><dd>${OW.party.length} / 3</dd><dt>RESERVE</dt><dd>${(OW.box||[]).length}</dd><dt>BONDED</dt><dd>${OW.flags.caught||0}</dd><dt>PLAY TIME</dt><dd>${fmtT(OW.playT)}</dd><dt>RIVAL</dt><dd>${OW.rival}</dd></dl></div><div class="cardp">${OW.party.map(()=>'<canvas class="px"></canvas>').join('')}</div></div>`}
 function optHTML(){const r3=typeof R3D!=='undefined'&&R3D.ready;return`<div class="bagv"><div class="bagh"><b>OPTIONS</b></div><div class="pmbtns col"><button type="button" data-a="sound">SOUND: ${muted?'OFF':'ON'}</button>${r3?`<button type="button" data-a="r3d">3D VIEW: ${R3D.on?'ON':'OFF'}</button>`:''}<button type="button" data-a="chart">TYPE CHART</button></div></div>`}
@@ -3963,6 +3991,7 @@ function openOwMenu(){OW.menuOpen=true;const el=UI.menu;el.hidden=false;const in
     else if(a==='swap'){const i=+b.dataset.i,j=+b.dataset.j,t=OW.party[j];OW.party[j]=OW.box[i];OW.box[i]=t;saveGame();toast(MON[OW.party[j].id].n.toUpperCase()+' joined your team!');menuPanel('party')}
     else if(a==='lead'){const i=+b.dataset.i;if(inRoute){toast("Swap partners with 1 2 3 while you're in the field.");return}const t=OW.party[0];OW.party[0]=OW.party[i];OW.party[i]=t;saveGame();menuPanel('party')}
     else if(a==='potion'){usePotion(+b.dataset.i);menuPanel('bag')}
+    else if(a==='load'){const i=+b.dataset.i,st=OW.menuScroll=$('mparty').scrollTop;setLoad(i,b.dataset.s,b.dataset.v);menuPanel('sum',i);$('mparty').scrollTop=st}
     else if(a==='sum')menuPanel('sum',+b.dataset.i);
     else if(a==='party'||a==='bag'||a==='card'||a==='opt'||a==='map'){el.querySelectorAll('.mbox button').forEach(x=>x.classList.toggle('on',x===b));menuPanel(a)}};
   menuPanel('party')}
@@ -4511,7 +4540,7 @@ WILD_SP.voltusk={aggro:[85,120],turf:150,leash:340,flee:0,fac:4};WILD_SP.mesmamb
 async function startRoute(id,entry){const r=OW.maps[id];if(!AC){try{AC=new(window.AudioContext||window.webkitAudioContext)()}catch(e){}}
   await fadeTo(1,.3);
   MW=r.w;MH=r.h;WW=MW*16;WH=MH*16;MINI=null;softTrees(r);MAP={ground:r.ground,obj:r.obj,walk:r.walk,shot:r.shot};WORLD=r.cvs;
-  newGame(OW.party.map(c=>({id:c.id,lv:c.lv,hp:c.hp,ht:c.ht})),[],'easy');
+  newGame(OW.party.map(c=>({id:c.id,lv:c.lv,hp:c.hp,ht:c.ht,load:c.load})),[],'easy');
   const e=r.entries[entry]||r.entries.south,P=G.f[0];P.x=e.x;P.y=e.y;P.aim=-PI/2;P.invuln=1.5;
   G.start=0;G.route={id,map:r,spawnT:1,turfT:24,wipe:0,signCd:0,npcs:r.rnpcs||[],arena:null,busy:0};G.focus=null;G.kos=null;
   if(r.ally&&OW.flags.lhMaren&&!OW.flags.lhDone)mkAlly();
@@ -4772,7 +4801,7 @@ function catchWild(t,f){const P=G.f[0],u=f.unit;f.bound=0;f.gone=1;
   const base=calcStats(u.m,u.lv),hp=Math.max(1,Math.round(u.hp/u.max*base.max));const c={id:u.id,lv:u.lv,xp:XPN(u.lv),hp,ht:u.ht};
   ring(t.x,t.y-4,26,'#ffffff',.5,'nova');fx(t.x,t.y-6,'#f8e078',26,120,.6,2,20);fx(t.x,t.y-6,'#ffffff',14,90,.5);sfx('go');
   routeXP(f);OW.box=OW.box||[];let where;
-  if(OW.party.length<3){OW.party.push(c);P.team.push(mkUnit(c.id,c.lv,c.hp,c.ht));buildHud();where="It joined your team! Press "+P.team.length+" to swap to it.";}
+  if(OW.party.length<3){OW.party.push(c);P.team.push(mkUnit(c.id,c.lv,c.hp,c.ht,c.load));buildHud();where="It joined your team! Press "+P.team.length+" to swap to it.";}
   else{OW.box.push(c);where="Your team's full, so it'll wait for you at Larch's field office.";}
   OW.flags.caught=(OW.flags.caught||0)+1;saveGame();
   runScript(async()=>{G.paused=true;await say("TETHERED! The wild "+u.m.n.toUpperCase()+" (Lv"+u.lv+") bonded with you!\n"+where);if(OW.flags.caught===1)await say("MAREN (from somewhere, somehow): Told you. Wear them down first.");G.paused=false})}

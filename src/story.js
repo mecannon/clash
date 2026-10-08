@@ -249,7 +249,7 @@ function trainerBattle(o){return new Promise(async res=>{const m=OW.map,p=OW.p;
   MW=w;MH=h;WW=w*16;WH=h*16;MINI=null;
   MAP={ground:sub('ground'),obj:sub('obj'),walk:sub('walk'),shot:sub('shot')};softTrees(MAP);
   WORLD=m.cvs.map(cv=>{const c=mkCanvas(WW,WH),x=c.getContext('2d');x.drawImage(cv,-x0*16,-y0*16);if(m.habitats)for(const hb of m.habitats)drawHabitatLive(x,hb,(hb.x-x0)*16,(hb.y-y0)*16,0);return c});
-  sel.diff=o.diff;newGame(OW.party.map(c=>({id:c.id,lv:c.lv,hp:c.hp,ht:c.ht})),o.enemy.map(e=>Object.assign({},e,{lv:encLv(e.lv,o.gym?'b':'t')})),o.diff);
+  sel.diff=o.diff;newGame(OW.party.map(c=>({id:c.id,lv:c.lv,hp:c.hp,ht:c.ht,load:c.load})),o.enemy.map(e=>Object.assign({},e,{lv:encLv(e.lv,o.gym?'b':'t')})),o.diff);
   const P=G.f[0],Q=G.f[1];P.x=p.px-x0*16;P.y=p.py-y0*16-2;Q.x=(o.npc.x-x0)*16+8;Q.y=(o.npc.y-y0)*16+12;P.aim=Math.atan2(Q.y-P.y,Q.x-P.x);Q.aim=P.aim+PI;
   G.kos=[];G.story={name:o.name,x0,y0,onEnd:async w=>{APP.mode='ow';$('hud').hidden=true;OW.last=performance.now();
     G.f[0].team.forEach((u,i)=>{if(OW.party[i])OW.party[i].hp=Math.max(1,Math.round(u.hp))});
@@ -442,8 +442,8 @@ function summaryHTML(i){const c=OW.party[i],m=MON[c.id],st=calcStats(m,c.lv),hp=
   <div class="sumh"><canvas class="px"></canvas><div><b>${m.n.toUpperCase()} <small>Lv${c.lv}</small></b><div class="tys">${chips(m.types)}${clsChip(m)}</div><div class="sumr"><span>${m.role.toUpperCase()}</span><span>HEIGHT ${htTxt(c)}</span></div><p>${m.blurb}</p></div></div>
   ${hpBar(hp,st.max)}<div class="xpb"><span>EXP</span><i><b style="width:${pct}%"></b></i><span>${c.xp} · ${nxt-c.xp} to Lv${c.lv+1}</span></div>
   <div class="sumst">${rows.map(([l,k,v])=>`<span>${l}</span><i><b style="width:${Math.min(100,m.stats[k==='max'?'hp':k]/1.3)}%;background:${(STAT_COL[k==='max'?'hp':k]||['#3f86e0'])[0]}"></b></i><em>${v}</em>`).join('')}</div>
-  <div class="sumam"><b>${m.ammo.unit.toUpperCase()}</b> ${m.ammo.d}</div>
-  <div class="summv">${m.moves.map(mv=>`<div class="mvrow"><span class="mk">${mv.k==='E'?'R · ULT':mv.k}</span><div><div class="mvh"><b>${mv.n.toUpperCase()}</b>${chips([mv.t])}<span>POW ${mv.pow}</span><span>${mv.cd?'CD '+mv.cd+'s':mv.k==='E'?'ULT':'—'}</span></div><p>${mv.d}</p></div></div>`).join('')}</div></div>`}
+  <div class="sumam"><b>${loadMon(c.id,c.load).ammo.unit.toUpperCase()}</b> ${loadMon(c.id,c.load).ammo.d}</div>
+  ${loadoutHTML(i)}<div class="summv">${loadMon(c.id,c.load).moves.map(mv=>`<div class="mvrow"><span class="mk">${mv.k==='E'?'R · ULT':mv.k}</span><div><div class="mvh"><b>${mv.n.toUpperCase()}</b>${chips([mv.t])}<span>POW ${mv.pow}</span><span>${mv.cd?'CD '+mv.cd+'s':mv.k==='E'?'ULT':'—'}</span></div><p>${mv.d}</p></div></div>`).join('')}</div></div>`}
 function bagHTML(){const I=OW.items||{};return`<div class="bagv"><div class="bagh"><b>BAG</b><span>$${OW.money||0}</span></div>`+Object.keys(ITEMS).map(k=>{const it=ITEMS[k],n=I[k]||0;return`<div class="bagrow"><i style="background:${it.col}"></i><div><b>${it.n} <small>×${n}</small></b><p>${it.d}</p>${k==='potion'&&n>0?`<div class="pmbtns">${OW.party.map((c,j)=>`<button type="button" data-a="potion" data-i="${j}">USE ON ${MON[c.id].n.toUpperCase()} (${curHp(j)}/${calcStats(MON[c.id],c.lv).max})</button>`).join('')}</div>`:''}</div></div>`}).join('')+`</div>`}
 function cardHTML(){return`<div class="cardv"><div class="cardh"><b>TRAINER CARD</b><span>FERNBROOK FIELD OFFICE</span></div><div class="cardb"><canvas class="px"></canvas><dl><dt>NAME</dt><dd>${OW.name}</dd><dt>MONEY</dt><dd>$${OW.money||0}</dd><dt>TEAM</dt><dd>${OW.party.length} / 3</dd><dt>RESERVE</dt><dd>${(OW.box||[]).length}</dd><dt>BONDED</dt><dd>${OW.flags.caught||0}</dd><dt>PLAY TIME</dt><dd>${fmtT(OW.playT)}</dd><dt>RIVAL</dt><dd>${OW.rival}</dd></dl></div><div class="cardp">${OW.party.map(()=>'<canvas class="px"></canvas>').join('')}</div></div>`}
 function optHTML(){const r3=typeof R3D!=='undefined'&&R3D.ready;return`<div class="bagv"><div class="bagh"><b>OPTIONS</b></div><div class="pmbtns col"><button type="button" data-a="sound">SOUND: ${muted?'OFF':'ON'}</button>${r3?`<button type="button" data-a="r3d">3D VIEW: ${R3D.on?'ON':'OFF'}</button>`:''}<button type="button" data-a="chart">TYPE CHART</button></div></div>`}
@@ -469,6 +469,7 @@ function openOwMenu(){OW.menuOpen=true;const el=UI.menu;el.hidden=false;const in
     else if(a==='swap'){const i=+b.dataset.i,j=+b.dataset.j,t=OW.party[j];OW.party[j]=OW.box[i];OW.box[i]=t;saveGame();toast(MON[OW.party[j].id].n.toUpperCase()+' joined your team!');menuPanel('party')}
     else if(a==='lead'){const i=+b.dataset.i;if(inRoute){toast("Swap partners with 1 2 3 while you're in the field.");return}const t=OW.party[0];OW.party[0]=OW.party[i];OW.party[i]=t;saveGame();menuPanel('party')}
     else if(a==='potion'){usePotion(+b.dataset.i);menuPanel('bag')}
+    else if(a==='load'){const i=+b.dataset.i,st=OW.menuScroll=$('mparty').scrollTop;setLoad(i,b.dataset.s,b.dataset.v);menuPanel('sum',i);$('mparty').scrollTop=st}
     else if(a==='sum')menuPanel('sum',+b.dataset.i);
     else if(a==='party'||a==='bag'||a==='card'||a==='opt'||a==='map'){el.querySelectorAll('.mbox button').forEach(x=>x.classList.toggle('on',x===b));menuPanel(a)}};
   menuPanel('party')}
@@ -1017,7 +1018,7 @@ WILD_SP.voltusk={aggro:[85,120],turf:150,leash:340,flee:0,fac:4};WILD_SP.mesmamb
 async function startRoute(id,entry){const r=OW.maps[id];if(!AC){try{AC=new(window.AudioContext||window.webkitAudioContext)()}catch(e){}}
   await fadeTo(1,.3);
   MW=r.w;MH=r.h;WW=MW*16;WH=MH*16;MINI=null;softTrees(r);MAP={ground:r.ground,obj:r.obj,walk:r.walk,shot:r.shot};WORLD=r.cvs;
-  newGame(OW.party.map(c=>({id:c.id,lv:c.lv,hp:c.hp,ht:c.ht})),[],'easy');
+  newGame(OW.party.map(c=>({id:c.id,lv:c.lv,hp:c.hp,ht:c.ht,load:c.load})),[],'easy');
   const e=r.entries[entry]||r.entries.south,P=G.f[0];P.x=e.x;P.y=e.y;P.aim=-PI/2;P.invuln=1.5;
   G.start=0;G.route={id,map:r,spawnT:1,turfT:24,wipe:0,signCd:0,npcs:r.rnpcs||[],arena:null,busy:0};G.focus=null;G.kos=null;
   if(r.ally&&OW.flags.lhMaren&&!OW.flags.lhDone)mkAlly();
@@ -1278,7 +1279,7 @@ function catchWild(t,f){const P=G.f[0],u=f.unit;f.bound=0;f.gone=1;
   const base=calcStats(u.m,u.lv),hp=Math.max(1,Math.round(u.hp/u.max*base.max));const c={id:u.id,lv:u.lv,xp:XPN(u.lv),hp,ht:u.ht};
   ring(t.x,t.y-4,26,'#ffffff',.5,'nova');fx(t.x,t.y-6,'#f8e078',26,120,.6,2,20);fx(t.x,t.y-6,'#ffffff',14,90,.5);sfx('go');
   routeXP(f);OW.box=OW.box||[];let where;
-  if(OW.party.length<3){OW.party.push(c);P.team.push(mkUnit(c.id,c.lv,c.hp,c.ht));buildHud();where="It joined your team! Press "+P.team.length+" to swap to it.";}
+  if(OW.party.length<3){OW.party.push(c);P.team.push(mkUnit(c.id,c.lv,c.hp,c.ht,c.load));buildHud();where="It joined your team! Press "+P.team.length+" to swap to it.";}
   else{OW.box.push(c);where="Your team's full, so it'll wait for you at Larch's field office.";}
   OW.flags.caught=(OW.flags.caught||0)+1;saveGame();
   runScript(async()=>{G.paused=true;await say("TETHERED! The wild "+u.m.n.toUpperCase()+" (Lv"+u.lv+") bonded with you!\n"+where);if(OW.flags.caught===1)await say("MAREN (from somewhere, somehow): Told you. Wear them down first.");G.paused=false})}

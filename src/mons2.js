@@ -249,7 +249,7 @@ AIK.dreadwhale=function(f,t,c,d,sight,dt){const ai=f.ai,u=f.unit,D=ai.d;
 /* ---------- VERDRYAD ---------- */
 const LASH_L=72;
 function thornLash(f,a){const ca=Math.cos(a),sa=Math.sin(a),x0=f.x,y0=f.y-6,x1=x0+ca*rayLen(x0,y0+6,a,LASH_L),y1=y0+sa*rayLen(x0,y0+6,a,LASH_L);f.lashT=.16;f.lashA=a;f.lashL=Math.hypot(x1-x0,y1-y0);
-  for(const t of foes(f)){if(segDist(t.x,t.y-6,x0,y0,x1,y1)>t.r+5)continue;const tip=Math.hypot(t.x-x0,t.y-6-y0)>f.lashL*.7;hit(f,t,tip?38:28,'grass',{kb:tip?140:60,ka:a,quiet:!tip});if(tip)fx(t.x,t.y-8,'#a8e070',8,90,.3)}
+  for(const t of foes(f)){if(segDist(t.x,t.y-6,x0,y0,x1,y1)>t.r+5)continue;const tip=Math.hypot(t.x-x0,t.y-6-y0)>f.lashL*.7;hit(f,t,tip?38:28,'grass',{kb:tip?140:60,ka:a,quiet:!tip});f.seeds=Math.min(8,(f.seeds||0)+1);if(tip)fx(t.x,t.y-8,'#a8e070',8,90,.3)}
   for(const p of G.pods)if(p.owner!==f&&segDist(p.x,p.y-6,x0,y0,x1,y1)<8)hurtPod(p,24*f.unit.dmg/f.unit.mdef*LF(f.unit.lv)*1.2);sfx('swing')}
 FIRE2.bloom={touch(fi,t){applySt(t,{slow:[.25,.3]});if((t.bloomCd||0)<=G.t){t.bloomCd=G.t+.7;hit(fi.owner,t,22,'fairy',{quiet:1,atk:fi.atk,lv:fi.lv,cls:'mag',stabTypes:['grass','fairy']});fx(t.x,t.y-8,'#ffa8cc',6,60,.3)}},
   draw(fi){const k=Math.min(1,fi.life*1.5,(6-fi.life)*4+.2),r=fi.r,sp=G.t*.3+fi.seed;ctx.globalAlpha=.3*k;pell(fi.x,fi.y,r,r*.55,'#62b84a');
@@ -280,8 +280,32 @@ async function evolveScene(c){const E=MON[c.id]&&MON[c.id].evo;if(!E||c.lv<E.lv)
   sfx('charge');await say('What? '+om.n.toUpperCase()+' is evolving!');sfx('ult');
   c.id=E.to;c.hp=null;showLvl(nm,c.lv,calcStats(om,c.lv),calcStats(nm,c.lv));
   await say('Congratulations! Your '+om.n.toUpperCase()+' evolved into '+nm.n.toUpperCase()+'!');
-  await say(nm.n.toUpperCase()+' learned '+nm.moves.map(m=>m.n.toUpperCase()).join(', ')+'!');hideLvl();if(typeof saveGame==='function')saveGame()}
+  await say(nm.n.toUpperCase()+' learned '+nm.moves.filter(m=>m.k!=='PAS').map(m=>m.n.toUpperCase()).join(', ')+'!');hideLvl();
+  await say('It still remembers its '+om.n.toUpperCase()+' moves! Mix and match them anytime in TEAM ▸ SUMMARY ▸ MOVE LOADOUT.');if(typeof saveGame==='function')saveGame()}
 function evolveLive(P,u,c){const E=MON[c.id]&&MON[c.id].evo;if(!E||c.lv<E.lv)return;const om=u.m,nm=MON[E.to],k=u.hp/u.max;
-  c.id=E.to;Object.assign(u,{m:nm,id:E.to},calcStats(nm,c.lv));u.hp=Math.round(u.max*Math.max(k,.6));u.ammo=nm.ammo.max;u.rl=0;u.cd=[0,0];resetTransient(P);P.invuln=Math.max(P.invuln,1.2);
+  c.id=E.to;delete c.load;Object.assign(u,{m:nm,id:E.to},calcStats(nm,c.lv));u.hp=Math.round(u.max*Math.max(k,.6));u.ammo=nm.ammo.max;u.rl=0;u.cd=[0,0];resetTransient(P);P.invuln=Math.max(P.invuln,1.2);
   G.banner={txt:'EVOLVED!',who:nm.n,col:TC[nm.types[0]],t:2,side:0};G.flash=Math.max(G.flash,.3);ring(P.x,P.y-10,34,'#ffffff',.6,'nova');fx(P.x,P.y-12,'#ffffff',40,160,.7,2,40);fx(P.x,P.y-12,TC[nm.types[0]],24,120,.6,2,30);sfx('ult');
-  if(typeof toast==='function')toast(om.n.toUpperCase()+' evolved into '+nm.n.toUpperCase()+'!');HUD.side[0].last=null;buildHud&&buildHud()}
+  if(typeof toast==='function')toast(om.n.toUpperCase()+' evolved into '+nm.n.toUpperCase()+'! Old moves can be swapped back in TEAM ▸ SUMMARY.');HUD.side[0].last=null;buildHud&&buildHud()}
+
+/* ================= MOVE LOADOUTS =================
+   A party mon can fill each slot (l = LMB, r = RMB, e = ultimate) from any species it "knows": itself, every earlier
+   form in its line, and anything in c.learned (reserved for TMs). Each slot runs through its source species' own kit,
+   so borrowed moves behave exactly like the original. Ammo follows the LMB source. */
+MON.calderursa.evoFrom='cindercub';MON.dreadwhale.evoFrom='bulwhale';MON.verdryad.evoFrom='verdivy';
+function moveSrcs(c){const out=[c.id];let m=MON[c.id];while(m&&m.evoFrom&&!out.includes(m.evoFrom)){out.push(m.evoFrom);m=MON[m.evoFrom]}for(const s of c.learned||[])if(MON[s]&&!out.includes(s))out.push(s);return out}
+const LOADC={};
+function loadMon(id,load){const M=MON[id];if(!M||!load)return M;const L={l:load.l||id,r:load.r||id,e:load.e||id};if(L.l===id&&L.r===id&&L.e===id)return M;
+  const key=id+'|'+L.l+'|'+L.r+'|'+L.e;if(LOADC[key])return LOADC[key];const m=Object.create(M),pick=(s,k)=>MON[s].moves.filter(x=>x.k===k);
+  m.load=L;m.ammo=MON[L.l].ammo;m.moves=[...pick(L.l,'LMB'),...pick(L.r,'RMB'),...pick(L.e,'E'),...M.moves.filter(x=>x.k!=='LMB'&&x.k!=='RMB'&&x.k!=='E')];return LOADC[key]=m}
+// wrap every kit so a loadout unit dispatches each slot to its source kit
+{const K0=Object.assign({},KIT);for(const id in K0){const K=K0[id];KIT[id]={
+  act(f,c){const L=f.unit.m.load;if(!L)return K.act(f,c);for(const s of new Set([L.l,L.r,L.e])){const S=K0[s];if(!S)continue;const cc=Object.assign({},c);
+    if(L.l!==s){cc.l=0;cc.lp=0}if(L.r!==s){cc.r=0;cc.rHeld=0}if(L.e!==s)cc.e=0;S.act(f,cc)}},
+  move(f){const L=f.unit.m.load;if(!L)return K.move(f);let k=1;for(const s of new Set([L.l,L.r,L.e,f.unit.m.id]))if(K0[s])k*=K0[s].move(f);return k}}}}
+function setLoad(i,slot,src){const c=OW.party[i];if(!c||!moveSrcs(c).includes(src))return;c.load=Object.assign({l:c.id,r:c.id,e:c.id},c.load||{});c.load[slot]=src;
+  if(c.load.l===c.id&&c.load.r===c.id&&c.load.e===c.id)delete c.load;
+  if(APP.mode==='route'&&G&&G.f[0]&&G.f[0].team[i]){const P=G.f[0],u=P.team[i];u.m=loadMon(c.id,c.load);u.ammo=u.m.ammo.max;u.rl=0;if(P.idx===i)resetTransient(P);buildHud()}
+  if(typeof saveGame==='function')saveGame();const mv=MON[src].moves.find(x=>x.k===(slot==='l'?'LMB':slot==='r'?'RMB':'E'));toast(MON[c.id].n.toUpperCase()+' will use '+mv.n.toUpperCase()+'!')}
+function loadoutHTML(i){const c=OW.party[i],S=moveSrcs(c);if(S.length<2)return'';const L=Object.assign({l:c.id,r:c.id,e:c.id},c.load||{});
+  const row=(slot,k,lab)=>`<div class="ldrow"><span class="mk">${lab}</span>${S.map(s=>{const mv=MON[s].moves.find(x=>x.k===k);return mv?`<button type="button" data-a="load" data-i="${i}" data-s="${slot}" data-v="${s}" class="${L[slot]===s?'on':''}"><b>${mv.n.toUpperCase()}</b>${chips([mv.t])}<small>${MON[s].n.toUpperCase()}</small></button>`:''}).join('')}</div>`;
+  return`<div class="ldv"><div class="ldh"><b>MOVE LOADOUT</b><span>Mix moves from its whole line. Ammo follows the LMB move.</span></div>${row('l','LMB','LMB')}${row('r','RMB','RMB')}${row('e','E','R · ULT')}</div>`}

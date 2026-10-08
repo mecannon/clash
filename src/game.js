@@ -129,9 +129,9 @@ const K={},M={sx:240,sy:135,x:0,y:0,l:false,lpAt:-9,rAt:-9};
 const DIFF={easy:{react:1.2,err:.6,agg:.22,lead:0,dodge:0,idle:.45,spd:.75,swap:0,turn:1.6},normal:{react:.55,err:.26,agg:.4,lead:.3,dodge:.25,idle:0,spd:1,swap:0,turn:3.2},hard:{react:.24,err:.1,agg:.9,lead:.75,dodge:.65,idle:0,spd:1,swap:1,turn:7}};
 const SPAWN=[{x:30*16+8,y:27*16+8},{x:50*16+8,y:23*16+8}];
 function rollHt(){return Math.round((.9+Math.random()*.2)*100)/100}
-function mkUnit(id,L=50,hp,ht){const m=MON[id],st=calcStats(m,L);return Object.assign({m,id,lv:L,cd:[0,0],ult:0,ammo:m.ammo.max,rl:0,ht:ht||rollHt()},st,{hp:hp==null?st.max:Math.min(st.max,hp)})}
+function mkUnit(id,L=50,hp,ht,load){const m=loadMon(id,load),st=calcStats(m,L);return Object.assign({m,id,lv:L,cd:[0,0],ult:0,ammo:m.ammo.max,rl:0,ht:ht||rollHt()},st,{hp:hp==null?st.max:Math.min(st.max,hp)})}
 function mkFighter(side,ids,diff){
-  return{side,team:ids.map(x=>typeof x==='string'?mkUnit(x):mkUnit(x.id,x.lv,x.hp,x.ht)),idx:0,unit:null,used:new Set([0]),x:(SPAWN[side]||SPAWN[1]).x,y:(SPAWN[side]||SPAWN[1]).y,vx:0,vy:0,kvx:0,kvy:0,r:7,aim:side?PI:0,dir:side?'left':'right',
+  return{side,team:ids.map(x=>typeof x==='string'?mkUnit(x):mkUnit(x.id,x.lv,x.hp,x.ht,x.load)),idx:0,unit:null,used:new Set([0]),x:(SPAWN[side]||SPAWN[1]).x,y:(SPAWN[side]||SPAWN[1]).y,vx:0,vy:0,kvx:0,kvy:0,r:7,aim:side?PI:0,dir:side?'left':'right',
     st:{slowT:0,slowA:0,stun:0,stunImm:0,burn:0},invuln:1,channel:0,root:0,dash:null,hurt:0,swapCd:0,faintT:0,effCd:0,walk:0,
     mode:'norm',absorbed:0,guardT:0,jab:0,punchT:0,swingT:0,seeds:0,homerT:0,stream:null,
     dealt:0,kos:0,ai:side?{d:DIFF[diff],react:.5,strT:0,str:1,think:1,seen:null,stuck:0,lastX:0,lastY:0,detour:0,detourA:0,modeT:0}:null};
@@ -752,7 +752,7 @@ function fighterOver(f,sy){
   if(f.unit.ult>=100&&!f.wild){ctx.fillStyle=Math.floor(G.t*6)%2?'#ffffff':'#f8d030';ctx.fillRect(Math.round(f.x)+w/2+2,y0,2,2)}
   if(f.wild){ptext('Lv'+f.unit.lv,f.x,y0-8,f.unit.id==='scrattle'?'#f8e0c0':'#ffc0a8',6);if(f.wild.alert>0){const ay=y0-18-(f.wild.alert>.6?(f.wild.alert-.6)*20:0);ctx.fillStyle='#282830';ctx.fillRect(Math.round(f.x)-3,Math.round(ay),7,9);ctx.fillStyle='#ffffff';ctx.fillRect(Math.round(f.x)-2,Math.round(ay)+1,5,7);ctx.fillStyle='#f83838';ctx.fillRect(Math.round(f.x),Math.round(ay)+2,1,3);ctx.fillRect(Math.round(f.x),Math.round(ay)+6,1,1)}}
 }
-function drawGear(f,sx,sy,z){const id=f.unit.m.id,a=f.aim,ca=Math.cos(a),sa=Math.sin(a);if(GEAR2[id])GEAR2[id](f,a,ca,sa);
+function drawGear(f,sx,sy,z,idO){const id=idO||f.unit.m.id,a=f.aim,ca=Math.cos(a),sa=Math.sin(a);if(!idO&&f.unit.m.load)for(const s of new Set([f.unit.m.load.l,f.unit.m.load.r,f.unit.m.load.e]))if(s!==id)drawGear(f,sx,sy,z,s);if(GEAR2[id])GEAR2[id](f,a,ca,sa);
   if(id==='voltusk'||id==='mesmamba'||id==='phantern')drawGearNew(f,id,a,ca,sa);
   if(id==='cindercub'&&f.charging){const k=f.chargeT/1.2,r=2+5*k+Math.sin(G.t*30)*.7,x=f.x+ca*10,y=f.y-12+sa*6;pcirc(x,y,r+1,'#5a1000');pcirc(x,y,r,'#f47a18');pcirc(x,y,r*.6,'#f8c040');pcirc(x-1,y-1,Math.max(.5,r*.3),'#fff6c0');if(k>=1&&Math.floor(G.t*10)%2)pring(x,y,r+3,'#ffffff',2)}
   if(id==='scrattle'&&f.windT>0){const k=1-f.windT/.45;for(let i=0;i<10;i++){const aa=-k*6+i*.25;ctx.fillStyle=i===9?'#ffffff':'#d8809c';ctx.fillRect(Math.round(f.x+Math.cos(aa)*(8+i)),Math.round(f.y-4+Math.sin(aa)*(5+i*.6)),2,2)}}
@@ -929,12 +929,12 @@ function buildHud(){
   h.appendChild(bar);
   const hint=document.createElement('div');hint.className='gba hint';hint.textContent='WASD move · Mouse aim · LMB / RMB · R ultimate · F reload · 1 2 3 swap · Esc pause';h.appendChild(hint);HUD.hint=hint;
 }
-function curMoves(f){const m=f.unit.m,mv=m.moves,by=n=>mv.find(x=>x.n===n);
+function curMoves(f){const m=f.unit.m,mv=m.moves,by=n=>mv.find(x=>x.n===n);if(m.load){const L=mv.filter(x=>x.k==='LMB'),R=mv.filter(x=>x.k==='RMB');return[(f.mode==='turret'&&L.find(x=>x.mode==='turret'))||(f.mode==='guard'&&L.find(x=>x.mode==='guard'))||L.find(x=>!x.mode)||L[0],(f.mode==='roll'&&R.find(x=>x.mode==='roll'))||R.find(x=>!x.mode)||R[0],mv.find(x=>x.k==='E')]}
   switch(m.id){case'bulwhale':return[f.mode==='turret'?by('Water Gun'):by('Water Blob'),by('Turret Mode'),by('Hydro Cannon')];
     case'fistinel':return[f.mode==='guard'?by('Counter Blast'):by('Flurry Jab'),by('Guard Up'),by('Flying Kick')];
     case'voltusk':return[by('Tusk Spark'),f.mode==='roll'?by('Discharge'):by('Boulder Roll'),by('Fault Spark')];
     default:return[mv[0],mv[1],mv[2]]}}
-function special(f){switch(f.unit.m.id){
+function special(f,idO){if(!idO&&f.unit.m.load)return special(f,f.unit.m.load.r);switch(idO||f.unit.m.id){
   case'bulwhale':return[(f.mode==='turret'?'TURRET':'WALKING')+' · TANK '+Math.round(f.unit.ammo),f.unit.ammo/100];
   case'fistinel':return[f.mode==='guard'?'GUARD · '+Math.round(f.absorbed)+' stored':'READY',f.mode==='guard'?Math.min(1,f.absorbed/170):0];
   case'frostbunt':{const b=G.balls.find(b=>b.owner===f);return[f.homerT>0?'HOMER '+f.homerT.toFixed(1)+'s':b?(b.live?'BALL IN FLIGHT':'BALL LV '+b.charge+'/'+BALL_MAX+' · '+Math.round(ballPow(b))+' POW'):'NO BALL',f.homerT>0?f.homerT/7:b?b.charge/BALL_MAX:0]}
@@ -946,7 +946,7 @@ function special(f){switch(f.unit.m.id){
   case'voltusk':return[f.mode==='roll'?'ROLLING · '+Math.round((f.mom||0)*100)+'% MOMENTUM':f.faultW>0?'QUAKING...':f.unit.cd[1]>0?'ROLL '+f.unit.cd[1].toFixed(1)+'s':'ROLL READY',f.mode==='roll'?(f.mom||0):1-f.unit.cd[1]/5];
   case'mesmamba':{const n=G.fires.filter(q=>q.tox&&q.owner===f).length;return[f.link?'LINKED · CRUSH IN '+Math.max(0,LINK_T-f.link.time).toFixed(1)+'s':(f.unit.cd[1]>0?'GAZE '+f.unit.cd[1].toFixed(1)+'s':'GAZE READY')+' · POOLS '+n,f.link?f.link.time/LINK_T:1-f.unit.cd[1]/8]}
   case'phantern':return[f.mode==='veil'?'VEILED '+f.veilT.toFixed(1)+'s':f.unit.cd[1]>0?'HOOK '+f.unit.cd[1].toFixed(1)+'s':'HOOK READY',f.mode==='veil'?f.veilT/4.5:1-f.unit.cd[1]/4.5]
-  default:return SPECIAL2[f.unit.m.id]?SPECIAL2[f.unit.m.id](f):['',0]}}
+  default:return SPECIAL2[idO||f.unit.m.id]?SPECIAL2[idO||f.unit.m.id](f):['',0]}}
 function updHud(){
   const FOC=G.route?(G.focus&&alive(G.focus)&&dist(G.focus,G.f[0])<420?G.focus:null):G.f[1];
   [G.f[0],FOC].forEach((f,si)=>{const H_=HUD.side[si];H_.el.hidden=!f;if(!f)return;const u=f.unit;if(!u)return;
